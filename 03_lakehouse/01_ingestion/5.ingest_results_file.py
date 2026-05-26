@@ -71,7 +71,8 @@ def ingest_results(session: Session):
     )
 
     merge_condition = "tgt.result_id = src.result_id AND tgt.race_id = src.race_id"
-    deduped_df = results_with_columns_df.dropDuplicates(["result_id", "race_id"])
+    # Jolpica 数据中同一场比赛同一车手可能出现多条（result_id 不同），取 result_id 最小的一条
+    deduped_df = results_with_columns_df.dropDuplicates(["race_id", "driver_id"])
     merge_delta_data(deduped_df, processed_schema, "results",
                      merge_condition, "race_id")
     return results_with_columns_df

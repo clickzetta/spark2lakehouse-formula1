@@ -2,7 +2,7 @@
 
 > PySpark → ClickZetta Lakehouse 完整迁移示例，以 F1 赛车数据工程项目为载体。
 
-本项目 fork 自 [FerhattSimsekk/formula1-data-engineering](https://github.com/FerhattSimsekk/formula1-data-engineering)，在保留原始 Spark/PySpark 代码的基础上，新增了对应的 **ZettaPark（ClickZetta Python DataFrame SDK）实现**，并完成了端到端验证。
+本项目 fork 自 [FerhattSimsekk/formula1-data-engineering](https://github.com/FerhattSimsekk/formula1-data-engineering)，在保留原始 Spark/PySpark 代码的基础上，新增了对应的 **ZettaPark（ClickZetta Python DataFrame SDK）实现**，将原项目完整的迁移到ClickZetta Lakehouse，并完成了端到端验证。
 
 ---
 
@@ -47,15 +47,12 @@ spark2lakehouse-formula1/
 |----|------|------|
 | circuits | 78 | 34 个国家 |
 | races | 125 | 2018–2023 |
-| drivers | 100 | 历史全量 |
-| constructors | 100 | 历史全量 |
-| results | ~1,500 | 2018–2023 全赛季 |
-| pit_stops | ~7,000 | 2018–2023 全赛季 |
+| drivers | 37 | 2018–2023 参赛车手 |
+| constructors | 15 | 2018–2023 参赛车队 |
+| results | 2,500 | 2018–2023 全赛季 |
+| pit_stops | 4,294 | 2018–2023 全赛季 |
 | lap_times | 134,957 | 2018–2023，125 场 |
 | qualifying | 2,497 | 2018–2023，125 场 |
-
-> **注意**：`results` 和 `pit_stops` 需要从 Jolpica API 完整下载（2018–2023）。
-> 如果只用 `datasets/raw/` 里预置的文件，这两张表行数会偏少（见[数据集说明](#数据集说明)）。
 
 ---
 
@@ -93,12 +90,13 @@ CLICKZETTA_VCLUSTER=default_ap
 ```bash
 cd 03_lakehouse
 
-# 步骤 1：初始化 Volume 和 Schema
-python setup.py --skip-sql   # 只建 Volume + Schema，不跑 SQL
+# 步骤 1：初始化 Volume 和 Schema（只建 Volume + Schema，跳过数据下载）
+python setup.py --skip-download
 
-# 步骤 2：下载数据（2018–2023 全赛季，约 15 分钟）
-# lap_times 和 qualifying 需要单独下载（Jolpica 分页较慢）
-python 01_ingestion/download_lap_times_qualifying.py
+# 步骤 2：下载数据（2018–2023 全赛季，约 20 分钟）
+# Jolpica API 按赛季分页，需要逐场下载
+python 01_ingestion/download_results_pitstops.py       # results + pit_stops
+python 01_ingestion/download_lap_times_qualifying.py   # lap_times + qualifying
 
 # 步骤 3：E2E 全跑（上传 + 摄取 + 转换）
 python e2e.py --reset
@@ -164,13 +162,15 @@ python 02_transformation/0.transform_all.py
 
 | 脚本 | 作用 |
 |------|------|
-| `setup.py` | 一键初始化：建 Volume + Schema + 下载数据 + 上传 |
+| `setup.py` | 一键初始化：建 Volume + Schema（`--skip-download` 跳过数据下载） |
 | `upload_to_volume.py` | 将 `datasets/raw/` 上传到 Lakehouse Volume |
 | `reset.py` | 清空所有 processed / presentation 表和视图 |
 | `e2e.py` | 端到端全流程：上传 → 摄取 → 转换 → 汇总 |
 | `01_ingestion/0.ingest_all_files.py` | 运行所有摄取脚本 |
 | `02_transformation/0.transform_all.py` | 运行所有转换脚本 |
-| `01_ingestion/download_lap_times_qualifying.py` | 从 Jolpica API 下载 lap_times + qualifying |
+| `01_ingestion/download_results_pitstops.py` | 从 Jolpica API 下载 results + pit_stops（逐场） |
+| `01_ingestion/download_lap_times_qualifying.py` | 从 Jolpica API 下载 lap_times + qualifying（逐场） |
+| `01_ingestion/fix_drivers_constructors.py` | 从 Jolpica API 按赛季下载 drivers + constructors |
 
 ---
 
@@ -197,14 +197,15 @@ python 02_transformation/0.transform_all.py
 |------|------|---------|
 | `circuits.csv` | CSV | 历史全量（78 条） |
 | `races.csv` | CSV | 2018–2023（125 场） |
-| `drivers.json` | NDJSON | 历史全量（100 人） |
-| `constructors.json` | NDJSON | 历史全量（100 支） |
-| `results.json` | NDJSON | **需完整下载** 2018–2023 |
-| `pit_stops.json` | NDJSON | **需完整下载** 2018–2023 |
-| `lap_times.json` | NDJSON | 2018–2023（134,957 条） |
-| `qualifying.json` | NDJSON | 2018–2023（2,497 条） |
+| `drivers.json` | NDJSON | 2018–2023 参赛车手（37 人，由 `fix_drivers_constructors.py` 生成） |
+| `constructors.json` | NDJSON | 2018–2023 参赛车队（15 支，由 `fix_drivers_constructors.py` 生成） |
+| `results.json` | NDJSON | 2018–2023（2,500 条，由 `download_results_pitstops.py` 下载） |
+| `pit_stops.json` | NDJSON | 2018–2023（4,294 条，由 `download_results_pitstops.py` 下载） |
+| `lap_times.json` | NDJSON | 2018–2023（134,957 条，由 `download_lap_times_qualifying.py` 下载） |
+| `qualifying.json` | NDJSON | 2018–2023（2,497 条，由 `download_lap_times_qualifying.py` 下载） |
 
-`lap_times.json`（13 MB）和 `qualifying.json` 由 `download_lap_times_qualifying.py` 下载，写入本地后由 `upload_to_volume.py` 上传。
+> **注意**：Jolpica API 全局 `/drivers.json?limit=1000` 实际只返回 100 条（按字母序），
+> 无法覆盖 2018–2023 的参赛车手。必须用 `fix_drivers_constructors.py` 按赛季下载。
 
 ---
 

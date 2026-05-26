@@ -15,7 +15,8 @@ validate.py — 验证 Lakehouse 中 formula1 数据的完整性和一致性
 
 import sys
 import os
-sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
+_root = __import__("pathlib").Path(__file__).parent
+sys.path.insert(0, str(_root / "03_lakehouse"))
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -232,13 +233,13 @@ biz_checks = [
         "==", 1,
     ),
     (
-        "driver_standings.total_points > 0",
-        f"SELECT COUNT(*) FROM {pr}.driver_standings WHERE total_points <= 0",
+        "driver_standings.total_points >= 0（允许 0 分赛季）",
+        f"SELECT COUNT(*) FROM {pr}.driver_standings WHERE total_points < 0",
         "==", 0,
     ),
     (
-        "constructor_standings.total_points > 0",
-        f"SELECT COUNT(*) FROM {pr}.constructor_standings WHERE total_points <= 0",
+        "constructor_standings.total_points >= 0（允许 0 分赛季）",
+        f"SELECT COUNT(*) FROM {pr}.constructor_standings WHERE total_points < 0",
         "==", 0,
     ),
 ]
@@ -289,49 +290,49 @@ try:
 except Exception as e:
     warn("race_year 一致性检查失败", str(e)[:80])
 
-# driver_standings.total_points 与从 race_results 聚合的结果一致
+# driver_standings.total_points 与从 race_results 按年聚合的结果一致
 try:
     rows = q(session, f"""
-        SELECT ds.driver_name, ds.total_points AS ds_pts,
+        SELECT ds.driver_name, ds.race_year, ds.total_points AS ds_pts,
                COALESCE(agg.agg_pts, 0) AS agg_pts
         FROM {pr}.driver_standings ds
         LEFT JOIN (
-            SELECT driver_name, SUM(points) AS agg_pts
+            SELECT driver_name, race_year, SUM(points) AS agg_pts
             FROM {pr}.race_results
-            GROUP BY driver_name
-        ) agg ON ds.driver_name = agg.driver_name
+            GROUP BY driver_name, race_year
+        ) agg ON ds.driver_name = agg.driver_name AND ds.race_year = agg.race_year
         WHERE ABS(ds.total_points - COALESCE(agg.agg_pts, 0)) > 0.01
     """)
     if len(rows) == 0:
-        ok("driver_standings.total_points 与 race_results 聚合一致")
+        ok("driver_standings.total_points 与 race_results 按年聚合一致")
     else:
-        fail("driver_standings.total_points 与 race_results 聚合不一致",
-             f"{len(rows)} 个车手分值不匹配")
+        fail("driver_standings.total_points 与 race_results 按年聚合不一致",
+             f"{len(rows)} 行不匹配")
         for r in rows[:3]:
-            print(f"         {r[0]}: standings={r[1]}, race_results 聚合={r[2]}")
+            print(f"         {r[0]} {r[1]}: standings={r[2]}, race_results 聚合={r[3]}")
 except Exception as e:
     warn("driver_standings 分值一致性检查失败", str(e)[:80])
 
-# constructor_standings.total_points 与从 race_results 聚合的结果一致
+# constructor_standings.total_points 与从 race_results 按年聚合的结果一致
 try:
     rows = q(session, f"""
-        SELECT cs.team, cs.total_points AS cs_pts,
+        SELECT cs.team, cs.race_year, cs.total_points AS cs_pts,
                COALESCE(agg.agg_pts, 0) AS agg_pts
         FROM {pr}.constructor_standings cs
         LEFT JOIN (
-            SELECT team, SUM(points) AS agg_pts
+            SELECT team, race_year, SUM(points) AS agg_pts
             FROM {pr}.race_results
-            GROUP BY team
-        ) agg ON cs.team = agg.team
+            GROUP BY team, race_year
+        ) agg ON cs.team = agg.team AND cs.race_year = agg.race_year
         WHERE ABS(cs.total_points - COALESCE(agg.agg_pts, 0)) > 0.01
     """)
     if len(rows) == 0:
-        ok("constructor_standings.total_points 与 race_results 聚合一致")
+        ok("constructor_standings.total_points 与 race_results 按年聚合一致")
     else:
-        fail("constructor_standings.total_points 与 race_results 聚合不一致",
-             f"{len(rows)} 个车队分值不匹配")
+        fail("constructor_standings.total_points 与 race_results 按年聚合不一致",
+             f"{len(rows)} 行不匹配")
         for r in rows[:3]:
-            print(f"         {r[0]}: standings={r[1]}, race_results 聚合={r[2]}")
+            print(f"         {r[0]} {r[1]}: standings={r[2]}, race_results 聚合={r[3]}")
 except Exception as e:
     warn("constructor_standings 分值一致性检查失败", str(e)[:80])
 
