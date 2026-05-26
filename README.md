@@ -7,7 +7,7 @@
 ## 项目结构
 
 ```
-├── spark/                      # 📦 原始 Spark/PySpark 代码（只读参考）
+├── 01_spark/                   # 📦 原始 Spark/PySpark 代码（只读参考）
 │   ├── 01_ingestion/           #   数据摄取：spark.read.csv/json() → Delta
 │   ├── 02_transformation/      #   数据转换：DataFrame join + 聚合
 │   ├── 03_analysis/            #   数据分析：Spark SQL 查询
@@ -15,14 +15,14 @@
 │   ├── 05_includes/            #   公共函数和配置
 │   └── 06_utils/               #   工具脚本
 │
-├── lakehouse/                  # ✅ 迁移后的 ClickZetta Lakehouse SQL
+├── 02_migration/               # 📖 迁移说明文档
+│   ├── 01_overview.md              迁移策略与关键差异
+│   └── 02_syntax_mapping.md        Spark SQL → Lakehouse SQL 语法对照
+│
+├── 03_lakehouse/               # ✅ 迁移后的 ClickZetta Lakehouse SQL
 │   ├── 01_ddl/                 #   建表语句（External Table + Schema）
 │   ├── 02_transformation/      #   数据转换（INSERT OVERWRITE + Window 函数）
 │   └── 03_analysis/            #   数据分析（与 Spark SQL 基本兼容）
-│
-├── migration/              # 📖 迁移说明文档
-│   ├── 01_overview.md          迁移策略与关键差异
-│   └── 02_syntax_mapping.md    Spark SQL → Lakehouse SQL 语法对照
 │
 ├── datasets/raw/           # 原始数据（由 setup.py 从 Ergast API 下载）
 ├── setup.py                # 🚀 一键初始化（下载数据、创建 Volume、执行 SQL）
@@ -39,8 +39,8 @@
 
 ## 快速开始
 
-1. 阅读 [迁移概述](migration/01_overview.md) 了解整体迁移思路
-2. 参考 [语法对照表](migration/02_syntax_mapping.md) 了解 Spark SQL 与 Lakehouse SQL 的差异
+1. 阅读 [迁移概述](02_migration/01_overview.md) 了解整体迁移思路
+2. 参考 [语法对照表](02_migration/02_syntax_mapping.md) 了解 Spark SQL 与 Lakehouse SQL 的差异
 3. 按照 [逐步迁移指南](migration/04_step_by_step.md) 执行迁移
 
 ## 原始项目

@@ -48,7 +48,7 @@ VOLUME_ID     = f"{SCHEMA_NAME}.{VOLUME_NAME}"
 VOLUME_PATH   = f"/Volumes/quick_start/{SCHEMA_NAME}/{VOLUME_NAME}"
 
 DATASETS_DIR  = Path(__file__).parent / "datasets" / "raw"
-LAKEHOUSE_DIR = Path(__file__).parent / "lakehouse"
+LAKEHOUSE_DIR = Path(__file__).parent / "03_lakehouse"
 
 SQL_LAYERS = ["01_ddl", "02_transformation", "03_analysis"]
 

@@ -46,7 +46,7 @@ def main():
         "your-volume-path": os.environ.get("F1_VOLUME_PATH", ""),
     }
 
-    base = Path(__file__).parent / "lakehouse"
+    base = Path(__file__).parent / "03_lakehouse"
     if layer:
         patterns = [str(base / layer / "*.sql")]
     else:
