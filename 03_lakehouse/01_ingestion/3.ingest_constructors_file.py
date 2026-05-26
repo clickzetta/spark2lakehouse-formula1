@@ -3,7 +3,7 @@
 # 迁移说明：
 #   spark.read.json(path, schema=...) → session.read.json(path, schema=...)
 #   drop(col('url')) → drop("url")
-#   withColumnRenamed → rename
+#   withColumnRenamed → 直接使用，ZettaPark 兼容 PySpark 同名方法
 
 import sys
 sys.path.insert(0, "..")
@@ -26,15 +26,15 @@ def ingest_constructors(session: Session):
 
     constructor_final_df = (
         constructor_dropped_df
-        .rename(F.col("constructorId"),  "constructor_id")
-        .rename(F.col("constructorRef"), "constructor_ref")
-        .with_column("data_source", F.lit(v_data_source))
-        .with_column("file_date",   F.lit(v_file_date))
+        .withColumnRenamed("constructorId", "constructor_id")
+        .withColumnRenamed("constructorRef", "constructor_ref")
+        .withColumn("data_source", F.lit(v_data_source))
+        .withColumn("file_date",   F.lit(v_file_date))
     )
 
     constructor_final_df = add_ingestion_date(constructor_final_df)
 
-    constructor_final_df.write.save_as_table(
+    constructor_final_df.write.saveAsTable(
         f"{processed_schema}.constructors", mode="overwrite"
     )
     return constructor_final_df

@@ -1,9 +1,9 @@
 # ZettaPark — 对应原始：05_includes/common_functions.py
 #
 # 迁移说明：
-#   add_ingestion_date: withColumn → with_column，current_timestamp 来自 zettapark.functions
-#   re_arrange_partition_column: schema.names → [f.name for f in df.schema.fields]
-#   overwrite_partition: saveAsTable mode="overwrite" + partition_by
+#   add_ingestion_date: withColumn / current_timestamp → 直接使用，ZettaPark 兼容 PySpark 同名方法
+#   re_arrange_partition_column: schema.names → [f.name for f in df.schema.fields]（避免反引号问题）
+#   overwrite_partition: saveAsTable mode="overwrite" + partitionBy 直接使用
 #   merge_delta_data: 签名与原始相同；内部用 input_df.session 获取 session，
 #                     再通过 create_or_replace_temp_view + session.sql("MERGE INTO ...") 实现
 #   df_column_to_list: select + distinct + collect，Row 访问方式相同
@@ -12,7 +12,7 @@ from clickzetta.zettapark import functions as F
 
 
 def add_ingestion_date(df):
-    return df.with_column("ingestion_date", F.current_timestamp())
+    return df.withColumn("ingestion_date", F.current_timestamp())
 
 
 def re_arrange_partition_column(input_df, partition_column):
@@ -23,10 +23,10 @@ def re_arrange_partition_column(input_df, partition_column):
 
 def overwrite_partition(input_df, db_name, table_name, partition_column):
     output_df = re_arrange_partition_column(input_df, partition_column)
-    output_df.write.save_as_table(
+    output_df.write.saveAsTable(
         f"{db_name}.{table_name}",
         mode="overwrite",
-        partition_by=[partition_column],
+        partitionBy=[partition_column],
     )
 
 
@@ -55,8 +55,8 @@ def merge_delta_data(input_df, db_name, table_name, merge_condition, partition_c
             WHEN NOT MATCHED THEN INSERT *
         """)
     else:
-        input_df.write.save_as_table(
+        input_df.write.saveAsTable(
             f"{db_name}.{table_name}",
             mode="overwrite",
-            partition_by=[partition_column],
+            partitionBy=[partition_column],
         )

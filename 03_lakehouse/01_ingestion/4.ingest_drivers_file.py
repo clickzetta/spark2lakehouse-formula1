@@ -25,17 +25,17 @@ def ingest_drivers(session: Session):
     # Jolpica 版本 forename/surname 已展开，直接拼接
     drivers_final_df = (
         drivers_df
-        .rename(F.col("driverId"),  "driver_id")
-        .rename(F.col("driverRef"), "driver_ref")
-        .with_column("name", F.concat_ws(" ", F.col("forename"), F.col("surname")))
+        .withColumnRenamed("driverId", "driver_id")
+        .withColumnRenamed("driverRef", "driver_ref")
+        .withColumn("name", F.concat_ws(" ", F.col("forename"), F.col("surname")))
         .drop("forename", "surname", "url")
-        .with_column("data_source", F.lit(v_data_source))
-        .with_column("file_date",   F.lit(v_file_date))
+        .withColumn("data_source", F.lit(v_data_source))
+        .withColumn("file_date",   F.lit(v_file_date))
     )
 
     drivers_final_df = add_ingestion_date(drivers_final_df)
 
-    drivers_final_df.write.save_as_table(
+    drivers_final_df.write.saveAsTable(
         f"{processed_schema}.drivers", mode="overwrite"
     )
     return drivers_final_df

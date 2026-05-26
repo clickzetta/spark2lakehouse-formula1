@@ -29,7 +29,7 @@ def produce_constructor_standings(session: Session):
 
     constructor_standings_df = (
         race_results_df
-        .group_by("race_year", "team")
+        .groupBy("race_year", "team")
         .agg(
             F.sum("points").alias("total_points"),
             F.count(F.when(F.col("position") == 1, True)).alias("wins"),
@@ -37,10 +37,10 @@ def produce_constructor_standings(session: Session):
     )
 
     constructor_rank_spec = (
-        Window.partition_by("race_year")
-        .order_by(F.col("total_points").desc(), F.col("wins").desc())
+        Window.partitionBy("race_year")
+        .orderBy(F.col("total_points").desc(), F.col("wins").desc())
     )
-    final_df = constructor_standings_df.with_column("rank", F.rank().over(constructor_rank_spec))
+    final_df = constructor_standings_df.withColumn("rank", F.rank().over(constructor_rank_spec))
 
     merge_condition = "tgt.team = src.team AND tgt.race_year = src.race_year"
     merge_delta_data(final_df, presentation_schema, "constructor_standings",

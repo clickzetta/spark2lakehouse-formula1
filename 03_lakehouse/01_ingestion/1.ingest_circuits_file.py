@@ -2,9 +2,7 @@
 #
 # 迁移说明：
 #   spark.read.csv(path, schema=...) → session.read.csv(path, schema=...)
-#   withColumnRenamed → rename(F.col("old"), "new")
-#   withColumn → with_column
-#   saveAsTable → write.save_as_table(mode="overwrite")
+#   saveAsTable → write.saveAsTable(mode="overwrite")
 #   dbutils.widgets → Python 变量（无等价物）
 #   %run includes → import
 
@@ -49,18 +47,18 @@ def ingest_circuits(session: Session):
 
     circuits_renamed_df = (
         circuits_selected_df
-        .rename(F.col("circuitId"),  "circuit_id")
-        .rename(F.col("circuitRef"), "circuit_ref")
-        .rename(F.col("lat"),        "latitude")
-        .rename(F.col("lng"),        "longitude")
-        .rename(F.col("alt"),        "altitude")
-        .with_column("data_source", F.lit(v_data_source))
-        .with_column("file_date",   F.lit(v_file_date))
+        .withColumnRenamed("circuitId", "circuit_id")
+        .withColumnRenamed("circuitRef", "circuit_ref")
+        .withColumnRenamed("lat", "latitude")
+        .withColumnRenamed("lng", "longitude")
+        .withColumnRenamed("alt", "altitude")
+        .withColumn("data_source", F.lit(v_data_source))
+        .withColumn("file_date",   F.lit(v_file_date))
     )
 
     circuits_final_df = add_ingestion_date(circuits_renamed_df)
 
-    circuits_final_df.write.save_as_table(
+    circuits_final_df.write.saveAsTable(
         f"{processed_schema}.circuits", mode="overwrite"
     )
     return circuits_final_df

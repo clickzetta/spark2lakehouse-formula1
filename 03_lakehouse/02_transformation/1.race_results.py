@@ -2,9 +2,8 @@
 #
 # 迁移说明：
 #   spark.read.format('delta').load(path) → session.table("schema.table")
-#   withColumnRenamed → rename
-#   join + select → 相同语法
-#   merge_delta_data → ZettaPark 版本需要传入 session
+#   withColumnRenamed / join / select → 直接使用，ZettaPark 兼容 PySpark 同名方法
+#   merge_delta_data → 签名与原始相同，内部通过 input_df.session 获取 session
 
 import sys
 sys.path.insert(0, "..")
@@ -20,33 +19,33 @@ v_file_date = "2021-03-21"
 def produce_race_results(session: Session):
     drivers_df = (
         session.table(f"{processed_schema}.drivers")
-        .rename(F.col("number"),      "driver_number")
-        .rename(F.col("name"),        "driver_name")
-        .rename(F.col("nationality"), "driver_nationality")
+        .withColumnRenamed("number", "driver_number")
+        .withColumnRenamed("name", "driver_name")
+        .withColumnRenamed("nationality", "driver_nationality")
     )
 
     constructors_df = (
         session.table(f"{processed_schema}.constructors")
-        .rename(F.col("name"), "team")
+        .withColumnRenamed("name", "team")
     )
 
     circuits_df = (
         session.table(f"{processed_schema}.circuits")
-        .rename(F.col("location"), "circuit_location")
+        .withColumnRenamed("location", "circuit_location")
     )
 
     races_df = (
         session.table(f"{processed_schema}.races")
-        .rename(F.col("name"),           "race_name")
-        .rename(F.col("race_timestamp"), "race_date")
+        .withColumnRenamed("name", "race_name")
+        .withColumnRenamed("race_timestamp", "race_date")
     )
 
     results_df = (
         session.table(f"{processed_schema}.results")
         .filter(F.col("file_date") == v_file_date)
-        .rename(F.col("time"),    "race_time")
-        .rename(F.col("race_id"), "result_race_id")
-        .rename(F.col("file_date"), "result_file_date")
+        .withColumnRenamed("time", "race_time")
+        .withColumnRenamed("race_id", "result_race_id")
+        .withColumnRenamed("file_date", "result_file_date")
     )
 
     race_circuits_df = races_df.join(
@@ -71,8 +70,8 @@ def produce_race_results(session: Session):
             "team", "grid", "fastest_lap", "race_time", "points", "position",
             "result_file_date",
         )
-        .with_column("created_date", F.current_timestamp())
-        .rename(F.col("result_file_date"), "file_date")
+        .withColumn("created_date", F.current_timestamp())
+        .withColumnRenamed("result_file_date", "file_date")
     )
 
     merge_condition = "tgt.driver_name = src.driver_name AND tgt.race_id = src.race_id"

@@ -1,9 +1,9 @@
 # ZettaPark — 对应原始：02_transformation/2.driver_standings.py
 #
 # 迁移说明：
-#   Window.partitionBy().orderBy() → Window.partition_by().order_by()
+#   Window.partitionBy().orderBy() → Window.partitionBy().orderBy()
 #   rank().over(spec) → F.rank().over(spec)
-#   groupBy → group_by，agg 相同
+#   groupBy / Window.partitionBy().orderBy() → 直接使用，ZettaPark 兼容 PySpark 同名方法
 #   df_column_to_list → 来自 common_functions
 
 import sys
@@ -33,7 +33,7 @@ def produce_driver_standings(session: Session):
 
     driver_standings_df = (
         race_results_df
-        .group_by("race_year", "driver_name", "driver_nationality")
+        .groupBy("race_year", "driver_name", "driver_nationality")
         .agg(
             F.sum("points").alias("total_points"),
             F.count(F.when(F.col("position") == 1, True)).alias("wins"),
@@ -41,10 +41,10 @@ def produce_driver_standings(session: Session):
     )
 
     driver_rank_spec = (
-        Window.partition_by("race_year")
-        .order_by(F.col("total_points").desc(), F.col("wins").desc())
+        Window.partitionBy("race_year")
+        .orderBy(F.col("total_points").desc(), F.col("wins").desc())
     )
-    final_df = driver_standings_df.with_column("rank", F.rank().over(driver_rank_spec))
+    final_df = driver_standings_df.withColumn("rank", F.rank().over(driver_rank_spec))
 
     merge_condition = "tgt.driver_name = src.driver_name AND tgt.race_year = src.race_year"
     merge_delta_data(final_df, presentation_schema, "driver_standings",

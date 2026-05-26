@@ -23,10 +23,10 @@ def ingest_pit_stops(session: Session):
 
     final_df = (
         pit_stops_df
-        .rename(F.col("driverId"), "driver_id")
-        .rename(F.col("raceId"),   "race_id")
-        .with_column("data_source", F.lit(v_data_source))
-        .with_column("file_date",   F.lit(v_file_date))
+        .withColumnRenamed("driverId", "driver_id")
+        .withColumnRenamed("raceId", "race_id")
+        .withColumn("data_source", F.lit(v_data_source))
+        .withColumn("file_date",   F.lit(v_file_date))
     )
 
     final_df = add_ingestion_date(final_df)

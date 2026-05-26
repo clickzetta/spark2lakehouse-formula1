@@ -3,8 +3,7 @@
 # 迁移说明：
 #   to_timestamp(concat(...)) → F.to_timestamp(F.concat(...))
 #   coalesce → F.coalesce
-#   withColumn → with_column，withColumnRenamed → rename
-#   partitionBy → partition_by 参数
+#   partitionBy → write.saveAsTable(partitionBy=[...])
 
 import sys
 sys.path.insert(0, "..")
@@ -39,22 +38,22 @@ def ingest_races(session: Session):
         header=True,
     )
 
-    races_clean = races_df.with_column(
+    races_clean = races_df.withColumn(
         "time",
         F.when(F.col("time") == "\\N", None).otherwise(F.col("time"))
     )
 
     races_with_ts = (
         races_clean
-        .with_column(
+        .withColumn(
             "race_timestamp",
             F.to_timestamp(
                 F.concat(F.col("date"), F.lit(" "), F.coalesce(F.col("time"), F.lit("00:00:00"))),
                 "yyyy-MM-dd HH:mm:ss",
             )
         )
-        .with_column("data_source", F.lit(v_data_source))
-        .with_column("file_date",   F.lit(v_file_date))
+        .withColumn("data_source", F.lit(v_data_source))
+        .withColumn("file_date",   F.lit(v_file_date))
     )
 
     races_with_ts = add_ingestion_date(races_with_ts)
@@ -69,10 +68,10 @@ def ingest_races(session: Session):
         F.col("race_timestamp"),
     )
 
-    races_selected_df.write.save_as_table(
+    races_selected_df.write.saveAsTable(
         f"{processed_schema}.races",
         mode="overwrite",
-        partition_by=["race_year"],
+        partitionBy=["race_year"],
     )
     return races_selected_df
 
