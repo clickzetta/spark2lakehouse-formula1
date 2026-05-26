@@ -24,7 +24,7 @@ def get_conn():
         username=os.environ["CLICKZETTA_USERNAME"],
         password=os.environ["CLICKZETTA_PASSWORD"],
         schema=os.environ.get("CLICKZETTA_SCHEMA", "f1_raw"),
-        virtualCluster=os.environ.get("CLICKZETTA_VCLUSTER", "default_ap"),
+        vcluster=os.environ.get("CLICKZETTA_VCLUSTER", "default_ap"),
     )
 
 
