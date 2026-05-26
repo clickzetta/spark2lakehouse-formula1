@@ -1,8 +1,8 @@
-# ZettaPark — 对应原始：01_ingestion/0.ingest_all_files.py
+# ZettaPark — 对应原始：02_transformation/0.transform_all.py
 #
 # 迁移说明：
 #   原始使用 dbutils.notebook.run() 串行调用各 notebook
-#   ZettaPark 版本用 importlib 按路径加载各模块（文件名含数字前缀，不能直接 import）
+#   ZettaPark 版本用 importlib 按路径加载各模块
 
 import sys
 import importlib.util
@@ -20,7 +20,6 @@ from includes.configuration import SCHEMA_NAME
 
 
 def _load(filename):
-    """按文件路径加载模块，绕过数字前缀无法直接 import 的限制。"""
     path = _here / filename
     spec = importlib.util.spec_from_file_location(filename.stem, path)
     mod = importlib.util.module_from_spec(spec)
@@ -39,20 +38,9 @@ session = Session.builder.configs({
 }).create()
 
 try:
-    _load(Path("1.ingest_circuits_file.py")).ingest_circuits(session)
-    _load(Path("2.ingest_races_file.py")).ingest_races(session)
-    _load(Path("3.ingest_constructors_file.py")).ingest_constructors(session)
-    _load(Path("4.ingest_drivers_file.py")).ingest_drivers(session)
-    _load(Path("5.ingest_results_file.py")).ingest_results(session)
-    _load(Path("6.ingest_pit_stops_file.py")).ingest_pit_stops(session)
-    try:
-        _load(Path("7.ingest_lap_times_file.py")).ingest_lap_times(session)
-    except Exception as e:
-        print(f"[SKIP] lap_times: {e}")
-    try:
-        _load(Path("8.ingest_qualifying_file.py")).ingest_qualifying(session)
-    except Exception as e:
-        print(f"[SKIP] qualifying: {e}")
+    _load(Path("1.race_results.py")).produce_race_results(session)
+    _load(Path("2.driver_standings.py")).produce_driver_standings(session)
+    _load(Path("3.constructor_standings.py")).produce_constructor_standings(session)
+    _load(Path("4.calculated_race_results.py")).produce_calculated_race_results(session)
 finally:
     session.close()
-

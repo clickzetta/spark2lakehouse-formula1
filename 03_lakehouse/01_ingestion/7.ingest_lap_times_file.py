@@ -5,7 +5,7 @@
 #   如需完整数据，可通过 Jolpica /ergast/f1/{season}/{round}/laps.json 接口下载并 PUT 到 Volume
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
@@ -17,20 +17,23 @@ v_file_date   = "2021-03-21"
 
 
 def ingest_lap_times(session: Session):
-    lap_times_df = session.read.csv(
-        f"{raw_folder_path}/lap_times.csv",
-        header=True,
+    lap_times_df = (
+        session.read
+        .option("header", True)
+        .csv(f"{raw_folder_path}/lap_times.csv")
     )
 
-    final_df = (
-        lap_times_df
-        .withColumnRenamed("driverId", "driver_id")
-        .withColumnRenamed("raceId", "race_id")
-        .withColumn("data_source", F.lit(v_data_source))
-        .withColumn("file_date",   F.lit(v_file_date))
+    final_df = lap_times_df.select(
+        F.col("raceId").alias("race_id"),
+        F.col("driverId").alias("driver_id"),
+        F.col("lap"),
+        F.col("position"),
+        F.col("time"),
+        F.col("milliseconds"),
+        F.lit(v_data_source).alias("data_source"),
+        F.lit(v_file_date).alias("file_date"),
+        F.current_timestamp().alias("ingestion_date"),
     )
-
-    final_df = add_ingestion_date(final_df)
 
     merge_condition = (
         "tgt.race_id = src.race_id AND tgt.driver_id = src.driver_id AND tgt.lap = src.lap"

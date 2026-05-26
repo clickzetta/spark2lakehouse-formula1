@@ -7,7 +7,7 @@
 #   %run includes → import
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
@@ -24,7 +24,7 @@ v_file_date   = "2021-03-21"
 
 def ingest_circuits(session: Session):
     circuits_schema = StructType([
-        StructField("circuitId",  IntegerType(), False),
+        StructField("circuitId",  IntegerType(), True),
         StructField("circuitRef", StringType(),  True),
         StructField("name",       StringType(),  True),
         StructField("location",   StringType(),  True),
@@ -35,33 +35,31 @@ def ingest_circuits(session: Session):
         StructField("url",        StringType(),  True),
     ])
 
-    circuits_df = session.read.csv(
-        f"{raw_folder_path}/circuits.csv",
-        schema=circuits_schema,
-        header=True,
+    circuits_df = (
+        session.read
+        .option("header", True)
+        .schema(circuits_schema)
+        .csv(f"{raw_folder_path}/circuits.csv")
     )
 
     circuits_selected_df = circuits_df.select(
-        "circuitId", "circuitRef", "name", "location", "country", "lat", "lng", "alt"
+        F.col("circuitId").alias("circuit_id"),
+        F.col("circuitRef").alias("circuit_ref"),
+        F.col("name"),
+        F.col("location"),
+        F.col("country"),
+        F.col("lat").alias("latitude"),
+        F.col("lng").alias("longitude"),
+        F.col("alt").alias("altitude"),
+        F.lit(v_data_source).alias("data_source"),
+        F.lit(v_file_date).alias("file_date"),
+        F.current_timestamp().alias("ingestion_date"),
     )
 
-    circuits_renamed_df = (
-        circuits_selected_df
-        .withColumnRenamed("circuitId", "circuit_id")
-        .withColumnRenamed("circuitRef", "circuit_ref")
-        .withColumnRenamed("lat", "latitude")
-        .withColumnRenamed("lng", "longitude")
-        .withColumnRenamed("alt", "altitude")
-        .withColumn("data_source", F.lit(v_data_source))
-        .withColumn("file_date",   F.lit(v_file_date))
-    )
-
-    circuits_final_df = add_ingestion_date(circuits_renamed_df)
-
-    circuits_final_df.write.saveAsTable(
+    circuits_selected_df.write.saveAsTable(
         f"{processed_schema}.circuits", mode="overwrite"
     )
-    return circuits_final_df
+    return circuits_selected_df
 
 
 if __name__ == "__main__":

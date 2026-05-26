@@ -6,10 +6,13 @@
 #   withColumnRenamed → 直接使用，ZettaPark 兼容 PySpark 同名方法
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
+from clickzetta.zettapark.types import (
+    StructType, StructField, IntegerType, StringType
+)
 from includes.configuration import raw_folder_path, processed_schema
 from includes.common_functions import add_ingestion_date
 
@@ -18,21 +21,29 @@ v_file_date   = "2021-03-21"
 
 
 def ingest_constructors(session: Session):
-    constructors_df = session.read.json(
-        f"{raw_folder_path}/constructors.json"
+    constructors_schema = StructType([
+        StructField("constructorId",  IntegerType(), True),
+        StructField("constructorRef", StringType(),  True),
+        StructField("name",           StringType(),  True),
+        StructField("nationality",    StringType(),  True),
+        StructField("url",            StringType(),  True),
+    ])
+
+    constructors_df = (
+        session.read
+        .schema(constructors_schema)
+        .json(f"{raw_folder_path}/constructors.json")
     )
 
-    constructor_dropped_df = constructors_df.drop("url")
-
-    constructor_final_df = (
-        constructor_dropped_df
-        .withColumnRenamed("constructorId", "constructor_id")
-        .withColumnRenamed("constructorRef", "constructor_ref")
-        .withColumn("data_source", F.lit(v_data_source))
-        .withColumn("file_date",   F.lit(v_file_date))
+    constructor_final_df = constructors_df.select(
+        F.col("constructorId").alias("constructor_id"),
+        F.col("constructorRef").alias("constructor_ref"),
+        F.col("name"),
+        F.col("nationality"),
+        F.lit(v_data_source).alias("data_source"),
+        F.lit(v_file_date).alias("file_date"),
+        F.current_timestamp().alias("ingestion_date"),
     )
-
-    constructor_final_df = add_ingestion_date(constructor_final_df)
 
     constructor_final_df.write.saveAsTable(
         f"{processed_schema}.constructors", mode="overwrite"

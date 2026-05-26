@@ -6,7 +6,7 @@
 #   MERGE INTO 是标准 SQL，ZettaPark 直接支持
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from includes.configuration import processed_schema, presentation_schema

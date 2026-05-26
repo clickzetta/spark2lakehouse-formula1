@@ -7,7 +7,7 @@ import glob
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 try:
     import clickzetta
@@ -46,12 +46,12 @@ def main():
         "your-volume-path": os.environ.get("F1_VOLUME_PATH", ""),
     }
 
-    base = Path(__file__).parent / "03_lakehouse"
+    base = Path(__file__).parent
     if layer:
         patterns = [str(base / layer / "*.sql")]
     else:
         patterns = [
-            str(base / "01_ddl" / "*.sql"),
+            str(base / "04_create_raw_tables" / "*.sql"),
             str(base / "02_transformation" / "*.sql"),
             str(base / "03_analysis" / "*.sql"),
         ]

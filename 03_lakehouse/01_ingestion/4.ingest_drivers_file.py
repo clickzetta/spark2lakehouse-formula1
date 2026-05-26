@@ -6,10 +6,13 @@
 #   drop('url') → drop("url")
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
+from clickzetta.zettapark.types import (
+    StructType, StructField, IntegerType, StringType
+)
 from includes.configuration import raw_folder_path, processed_schema
 from includes.common_functions import add_ingestion_date
 
@@ -18,22 +21,36 @@ v_file_date   = "2021-03-21"
 
 
 def ingest_drivers(session: Session):
-    drivers_df = session.read.json(
-        f"{raw_folder_path}/drivers.json"
+    drivers_schema = StructType([
+        StructField("driverId",    IntegerType(), True),
+        StructField("driverRef",   StringType(),  True),
+        StructField("number",      IntegerType(), True),
+        StructField("code",        StringType(),  True),
+        StructField("forename",    StringType(),  True),
+        StructField("surname",     StringType(),  True),
+        StructField("dob",         StringType(),  True),
+        StructField("nationality", StringType(),  True),
+        StructField("url",         StringType(),  True),
+    ])
+
+    drivers_df = (
+        session.read
+        .schema(drivers_schema)
+        .json(f"{raw_folder_path}/drivers.json")
     )
 
-    # Jolpica 版本 forename/surname 已展开，直接拼接
-    drivers_final_df = (
-        drivers_df
-        .withColumnRenamed("driverId", "driver_id")
-        .withColumnRenamed("driverRef", "driver_ref")
-        .withColumn("name", F.concat_ws(" ", F.col("forename"), F.col("surname")))
-        .drop("forename", "surname", "url")
-        .withColumn("data_source", F.lit(v_data_source))
-        .withColumn("file_date",   F.lit(v_file_date))
+    drivers_final_df = drivers_df.select(
+        F.col("driverId").alias("driver_id"),
+        F.col("driverRef").alias("driver_ref"),
+        F.col("number"),
+        F.col("code"),
+        F.concat_ws(F.lit(" "), F.col("forename"), F.col("surname")).alias("name"),
+        F.col("dob"),
+        F.col("nationality"),
+        F.lit(v_data_source).alias("data_source"),
+        F.lit(v_file_date).alias("file_date"),
+        F.current_timestamp().alias("ingestion_date"),
     )
-
-    drivers_final_df = add_ingestion_date(drivers_final_df)
 
     drivers_final_df.write.saveAsTable(
         f"{processed_schema}.drivers", mode="overwrite"

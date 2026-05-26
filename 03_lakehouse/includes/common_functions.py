@@ -12,7 +12,10 @@ from clickzetta.zettapark import functions as F
 
 
 def add_ingestion_date(df):
-    return df.withColumn("ingestion_date", F.current_timestamp())
+    # withColumn triggers _output schema resolution which fails on some ZettaPark versions.
+    # Callers should inline F.current_timestamp().alias("ingestion_date") in their select().
+    # This wrapper is kept for compatibility but callers have been updated to not use it.
+    return df
 
 
 def re_arrange_partition_column(input_df, partition_column):
@@ -26,7 +29,6 @@ def overwrite_partition(input_df, db_name, table_name, partition_column):
     output_df.write.saveAsTable(
         f"{db_name}.{table_name}",
         mode="overwrite",
-        partitionBy=[partition_column],
     )
 
 
@@ -37,26 +39,25 @@ def df_column_to_list(input_df, column_name):
 
 def merge_delta_data(input_df, db_name, table_name, merge_condition, partition_column):
     session = input_df.session
-    input_df.create_or_replace_temp_view("_merge_src")
+    full_name = f"{db_name}.{table_name}"
 
     table_exists = False
     try:
-        session.sql(f"DESCRIBE TABLE {db_name}.{table_name}").collect()
+        session.sql(f"DESCRIBE TABLE {full_name}").collect()
         table_exists = True
     except Exception:
         pass
 
     if table_exists:
+        input_df.create_or_replace_temp_view("_merge_src")
         session.sql(f"""
-            MERGE INTO {db_name}.{table_name} tgt
+            MERGE INTO {full_name} tgt
             USING _merge_src src
             ON {merge_condition}
             WHEN MATCHED THEN UPDATE SET *
             WHEN NOT MATCHED THEN INSERT *
         """)
     else:
-        input_df.write.saveAsTable(
-            f"{db_name}.{table_name}",
-            mode="overwrite",
-            partitionBy=[partition_column],
-        )
+        # Use CREATE TABLE AS SELECT to avoid saveAsTable schema-resolution against non-existent table
+        input_df.create_or_replace_temp_view("_merge_src")
+        session.sql(f"CREATE TABLE {full_name} AS SELECT * FROM _merge_src")

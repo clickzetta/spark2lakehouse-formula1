@@ -3,17 +3,17 @@
 spark2lakehouse-formula1 一键初始化脚本
 
 执行顺序：
-  1. 从 Jolpica API 下载 F1 原始数据到 datasets/raw/
+  1. 从 Jolpica API 下载 F1 原始数据到 ../datasets/raw/
   2. 连接 ClickZetta Lakehouse
-  3. 创建 Volume（mcp_demo.formula1_vol）
-  4. 上传 datasets/raw/ 到 Volume
-  5. 执行 lakehouse/ddl/*.sql（建 schema + external table）
-  6. 执行 lakehouse/transformation/*.sql
-  7. 执行 lakehouse/analysis/*.sql
+  3. 创建 Volume（<CLICKZETTA_SCHEMA>.formula1_vol）
+  4. 上传 ../datasets/raw/ 到 Volume
+  5. 执行 04_create_raw_tables/*.sql（建 schema + COPY INTO）
+  6. 执行 02_transformation/*.sql
+  7. 执行 03_analysis/*.sql
 
 用法：
   pip install clickzetta-connector-python python-dotenv requests
-  cp .env.sample .env  # 填写连接信息
+  cp ../.env.sample ../.env  # 填写连接信息
   python setup.py
 """
 
@@ -26,7 +26,7 @@ import glob
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 try:
     import requests
@@ -42,13 +42,13 @@ except ImportError:
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
 
-SCHEMA_NAME   = "mcp_demo"
-VOLUME_NAME   = "formula1_vol"
+SCHEMA_NAME   = os.environ.get("CLICKZETTA_SCHEMA", "mcp_demo")
+VOLUME_NAME   = os.environ.get("CLICKZETTA_VOLUME", "formula1_vol")
 VOLUME_ID     = f"{SCHEMA_NAME}.{VOLUME_NAME}"
 VOLUME_PATH   = f"/Volumes/quick_start/{SCHEMA_NAME}/{VOLUME_NAME}"
 
-DATASETS_DIR  = Path(__file__).parent / "datasets" / "raw"
-LAKEHOUSE_DIR = Path(__file__).parent / "03_lakehouse"
+DATASETS_DIR  = Path(__file__).parent.parent / "datasets" / "raw"
+LAKEHOUSE_DIR = Path(__file__).parent
 
 SQL_LAYERS = ["04_create_raw_tables", "02_transformation", "03_analysis"]
 
@@ -111,7 +111,7 @@ def download_constructors(out_dir: Path):
     for i, c in enumerate(rows, 1):
         result.append({"constructorId": i, "constructorRef": c["constructorId"],
                        "name": c["name"], "nationality": c["nationality"], "url": c["url"]})
-    out.write_text(json.dumps(result, ensure_ascii=False, indent=2))
+    out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in result))
     print(f"OK ({len(result)} rows)")
 
 
@@ -128,7 +128,7 @@ def download_drivers(out_dir: Path):
                        "forename": d["givenName"], "surname": d["familyName"],
                        "dob": d.get("dateOfBirth", ""), "nationality": d.get("nationality", ""),
                        "url": d.get("url", "")})
-    out.write_text(json.dumps(result, ensure_ascii=False, indent=2))
+    out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in result))
     print(f"OK ({len(result)} rows)")
 
 
@@ -160,7 +160,7 @@ def download_results(out_dir: Path):
                 })
                 rid += 1
     out = out_dir / "results.json"
-    out.write_text(json.dumps(all_results, ensure_ascii=False, indent=2))
+    out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in all_results))
     print(f"OK ({len(all_results)} rows)")
 
 
@@ -187,7 +187,7 @@ def download_pit_stops(out_dir: Path):
             except Exception:
                 pass  # 某些 round 无 pit stop 数据
     out = out_dir / "pit_stops.json"
-    out.write_text(json.dumps(all_stops, ensure_ascii=False, indent=2))
+    out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in all_stops))
     print(f"OK ({len(all_stops)} rows)")
 
 

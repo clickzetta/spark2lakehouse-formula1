@@ -6,7 +6,7 @@
 #   merge_delta_data → 签名与原始相同，内部通过 input_df.session 获取 session
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
@@ -17,61 +17,45 @@ v_file_date = "2021-03-21"
 
 
 def produce_race_results(session: Session):
-    drivers_df = (
-        session.table(f"{processed_schema}.drivers")
-        .withColumnRenamed("number", "driver_number")
-        .withColumnRenamed("name", "driver_name")
-        .withColumnRenamed("nationality", "driver_nationality")
-    )
-
-    constructors_df = (
-        session.table(f"{processed_schema}.constructors")
-        .withColumnRenamed("name", "team")
-    )
-
-    circuits_df = (
-        session.table(f"{processed_schema}.circuits")
-        .withColumnRenamed("location", "circuit_location")
-    )
-
-    races_df = (
-        session.table(f"{processed_schema}.races")
-        .withColumnRenamed("name", "race_name")
-        .withColumnRenamed("race_timestamp", "race_date")
-    )
-
-    results_df = (
-        session.table(f"{processed_schema}.results")
-        .filter(F.col("file_date") == v_file_date)
-        .withColumnRenamed("time", "race_time")
-        .withColumnRenamed("race_id", "result_race_id")
-        .withColumnRenamed("file_date", "result_file_date")
-    )
+    drivers_df   = session.table(f"{processed_schema}.drivers")
+    constructors_df = session.table(f"{processed_schema}.constructors")
+    circuits_df  = session.table(f"{processed_schema}.circuits")
+    races_df     = session.table(f"{processed_schema}.races")
+    results_df   = session.table(f"{processed_schema}.results").filter(F.col("file_date") == v_file_date)
 
     race_circuits_df = races_df.join(
         circuits_df, races_df["circuit_id"] == circuits_df["circuit_id"], "inner"
     ).select(
-        races_df["race_id"], races_df["race_year"], races_df["race_name"],
-        races_df["race_date"], circuits_df["circuit_location"]
-    )
-
-    race_results_df = (
-        results_df
-        .join(race_circuits_df, results_df["result_race_id"] == race_circuits_df["race_id"])
-        .join(drivers_df,       results_df["driver_id"]      == drivers_df["driver_id"])
-        .join(constructors_df,  results_df["constructor_id"] == constructors_df["constructor_id"])
+        races_df["race_id"],
+        races_df["race_year"],
+        races_df["name"].alias("race_name"),
+        races_df["race_timestamp"].alias("race_date"),
+        circuits_df["location"].alias("circuit_location"),
     )
 
     final_df = (
-        race_results_df
+        results_df
+        .join(race_circuits_df, results_df["race_id"] == race_circuits_df["race_id"])
+        .join(drivers_df,       results_df["driver_id"] == drivers_df["driver_id"])
+        .join(constructors_df,  results_df["constructor_id"] == constructors_df["constructor_id"])
         .select(
-            "race_id", "race_year", "race_name", "race_date", "circuit_location",
-            "driver_name", "driver_number", "driver_nationality",
-            "team", "grid", "fastest_lap", "race_time", "points", "position",
-            "result_file_date",
+            race_circuits_df["race_id"],
+            race_circuits_df["race_year"],
+            race_circuits_df["race_name"],
+            race_circuits_df["race_date"],
+            race_circuits_df["circuit_location"],
+            drivers_df["name"].alias("driver_name"),
+            drivers_df["number"].alias("driver_number"),
+            drivers_df["nationality"].alias("driver_nationality"),
+            constructors_df["name"].alias("team"),
+            results_df["grid"],
+            results_df["fastest_lap"],
+            results_df["time"].alias("race_time"),
+            results_df["points"],
+            results_df["position"],
+            results_df["file_date"],
+            F.current_timestamp().alias("created_date"),
         )
-        .withColumn("created_date", F.current_timestamp())
-        .withColumnRenamed("result_file_date", "file_date")
     )
 
     merge_condition = "tgt.driver_name = src.driver_name AND tgt.race_id = src.race_id"

@@ -3,7 +3,7 @@
 # 迁移说明：与 2.driver_standings.py 结构完全相同，按车队分组
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
@@ -40,7 +40,11 @@ def produce_constructor_standings(session: Session):
         Window.partitionBy("race_year")
         .orderBy(F.col("total_points").desc(), F.col("wins").desc())
     )
-    final_df = constructor_standings_df.withColumn("rank", F.rank().over(constructor_rank_spec))
+    final_df = constructor_standings_df.select(
+        "race_year", "team",
+        "total_points", "wins",
+        F.rank().over(constructor_rank_spec).alias("rank"),
+    )
 
     merge_condition = "tgt.team = src.team AND tgt.race_year = src.race_year"
     merge_delta_data(final_df, presentation_schema, "constructor_standings",

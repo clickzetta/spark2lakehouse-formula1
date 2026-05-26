@@ -7,7 +7,7 @@
 #   df_column_to_list → 来自 common_functions
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
@@ -44,7 +44,11 @@ def produce_driver_standings(session: Session):
         Window.partitionBy("race_year")
         .orderBy(F.col("total_points").desc(), F.col("wins").desc())
     )
-    final_df = driver_standings_df.withColumn("rank", F.rank().over(driver_rank_spec))
+    final_df = driver_standings_df.select(
+        "race_year", "driver_name", "driver_nationality",
+        "total_points", "wins",
+        F.rank().over(driver_rank_spec).alias("rank"),
+    )
 
     merge_condition = "tgt.driver_name = src.driver_name AND tgt.race_year = src.race_year"
     merge_delta_data(final_df, presentation_schema, "driver_standings",

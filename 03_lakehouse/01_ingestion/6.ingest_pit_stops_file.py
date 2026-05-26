@@ -5,10 +5,13 @@
 #   merge_delta_data → ZettaPark 版本需要传入 session
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from clickzetta.zettapark import functions as F
+from clickzetta.zettapark.types import (
+    StructType, StructField, IntegerType, StringType
+)
 from includes.configuration import raw_folder_path, processed_schema
 from includes.common_functions import add_ingestion_date, merge_delta_data
 
@@ -17,19 +20,34 @@ v_file_date   = "2021-03-21"
 
 
 def ingest_pit_stops(session: Session):
-    pit_stops_df = session.read.json(
-        f"{raw_folder_path}/pit_stops.json"
+    pit_stops_schema = StructType([
+        StructField("raceId",       IntegerType(), True),
+        StructField("driverId",     StringType(),  True),
+        StructField("stop",         IntegerType(), True),
+        StructField("lap",          IntegerType(), True),
+        StructField("time",         StringType(),  True),
+        StructField("duration",     StringType(),  True),
+        StructField("milliseconds", IntegerType(), True),
+    ])
+
+    pit_stops_df = (
+        session.read
+        .schema(pit_stops_schema)
+        .json(f"{raw_folder_path}/pit_stops.json")
     )
 
-    final_df = (
-        pit_stops_df
-        .withColumnRenamed("driverId", "driver_id")
-        .withColumnRenamed("raceId", "race_id")
-        .withColumn("data_source", F.lit(v_data_source))
-        .withColumn("file_date",   F.lit(v_file_date))
+    final_df = pit_stops_df.select(
+        F.col("raceId").alias("race_id"),
+        F.col("driverId").alias("driver_id"),
+        F.col("stop"),
+        F.col("lap"),
+        F.col("time"),
+        F.col("duration"),
+        F.col("milliseconds"),
+        F.lit(v_data_source).alias("data_source"),
+        F.lit(v_file_date).alias("file_date"),
+        F.current_timestamp().alias("ingestion_date"),
     )
-
-    final_df = add_ingestion_date(final_df)
 
     merge_condition = (
         "tgt.race_id = src.race_id AND tgt.driver_id = src.driver_id "

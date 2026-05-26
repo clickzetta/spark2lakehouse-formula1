@@ -5,7 +5,7 @@
 #   这是 4.calculated_race_results.py 的简化版（全量覆盖，无增量 MERGE）
 
 import sys
-sys.path.insert(0, "..")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 from clickzetta.zettapark.session import Session
 from includes.configuration import processed_schema, presentation_schema
