@@ -34,7 +34,7 @@ def ingest_qualifying(session: Session):
     final_df = add_ingestion_date(final_df)
 
     merge_condition = "tgt.qualify_id = src.qualify_id AND tgt.race_id = src.race_id"
-    merge_delta_data(session, final_df, processed_schema, "qualifying",
+    merge_delta_data(final_df, processed_schema, "qualifying",
                      merge_condition, "race_id")
     return final_df
 

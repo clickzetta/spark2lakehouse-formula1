@@ -76,7 +76,7 @@ def produce_race_results(session: Session):
     )
 
     merge_condition = "tgt.driver_name = src.driver_name AND tgt.race_id = src.race_id"
-    merge_delta_data(session, final_df, presentation_schema, "race_results",
+    merge_delta_data(final_df, presentation_schema, "race_results",
                      merge_condition, "race_id")
     return final_df
 

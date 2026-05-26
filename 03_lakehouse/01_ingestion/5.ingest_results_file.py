@@ -2,7 +2,7 @@
 #
 # 迁移说明：
 #   dropDuplicates(['race_id', 'driver_id']) → drop_duplicates(["race_id", "driver_id"])
-#   merge_delta_data → merge_delta_data(session, df, ...) — ZettaPark 版本需要传入 session
+#   merge_delta_data → 签名与原始相同，内部通过 input_df.session 获取 session
 
 import sys
 sys.path.insert(0, "..")
@@ -43,7 +43,7 @@ def ingest_results(session: Session):
     results_deduped_df = results_final_df.drop_duplicates(["race_id", "driver_id"])
 
     merge_condition = "tgt.result_id = src.result_id AND tgt.race_id = src.race_id"
-    merge_delta_data(session, results_deduped_df, processed_schema, "results",
+    merge_delta_data(results_deduped_df, processed_schema, "results",
                      merge_condition, "race_id")
     return results_deduped_df
 

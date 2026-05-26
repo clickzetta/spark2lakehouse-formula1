@@ -4,7 +4,8 @@
 #   add_ingestion_date: withColumn → with_column，current_timestamp 来自 zettapark.functions
 #   re_arrange_partition_column: schema.names → [f.name for f in df.schema.fields]
 #   overwrite_partition: saveAsTable mode="overwrite" + partition_by
-#   merge_delta_data: session.sql("MERGE INTO ...") — ZettaPark 支持标准 MERGE INTO 语法
+#   merge_delta_data: 签名与原始相同；内部用 input_df.session 获取 session，
+#                     再通过 create_or_replace_temp_view + session.sql("MERGE INTO ...") 实现
 #   df_column_to_list: select + distinct + collect，Row 访问方式相同
 
 from clickzetta.zettapark import functions as F
@@ -34,11 +35,8 @@ def df_column_to_list(input_df, column_name):
     return [row[column_name] for row in rows]
 
 
-def merge_delta_data(session, input_df, db_name, table_name, merge_condition, partition_column):
-    """
-    先建临时视图，再用 session.sql 执行 MERGE INTO。
-    ZettaPark 不支持 DeltaTable.forPath，改用标准 SQL MERGE INTO。
-    """
+def merge_delta_data(input_df, db_name, table_name, merge_condition, partition_column):
+    session = input_df.session
     input_df.create_or_replace_temp_view("_merge_src")
 
     table_exists = False

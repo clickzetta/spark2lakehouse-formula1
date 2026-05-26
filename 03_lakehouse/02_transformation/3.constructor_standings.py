@@ -43,7 +43,7 @@ def produce_constructor_standings(session: Session):
     final_df = constructor_standings_df.with_column("rank", F.rank().over(constructor_rank_spec))
 
     merge_condition = "tgt.team = src.team AND tgt.race_year = src.race_year"
-    merge_delta_data(session, final_df, presentation_schema, "constructor_standings",
+    merge_delta_data(final_df, presentation_schema, "constructor_standings",
                      merge_condition, "race_year")
     return final_df
 

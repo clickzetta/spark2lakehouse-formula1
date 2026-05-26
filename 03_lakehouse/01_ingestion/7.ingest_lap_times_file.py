@@ -35,7 +35,7 @@ def ingest_lap_times(session: Session):
     merge_condition = (
         "tgt.race_id = src.race_id AND tgt.driver_id = src.driver_id AND tgt.lap = src.lap"
     )
-    merge_delta_data(session, final_df, processed_schema, "lap_times",
+    merge_delta_data(final_df, processed_schema, "lap_times",
                      merge_condition, "race_id")
     return final_df
 

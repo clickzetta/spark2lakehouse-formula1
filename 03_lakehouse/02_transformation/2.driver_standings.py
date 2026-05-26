@@ -47,7 +47,7 @@ def produce_driver_standings(session: Session):
     final_df = driver_standings_df.with_column("rank", F.rank().over(driver_rank_spec))
 
     merge_condition = "tgt.driver_name = src.driver_name AND tgt.race_year = src.race_year"
-    merge_delta_data(session, final_df, presentation_schema, "driver_standings",
+    merge_delta_data(final_df, presentation_schema, "driver_standings",
                      merge_condition, "race_year")
     return final_df
 
