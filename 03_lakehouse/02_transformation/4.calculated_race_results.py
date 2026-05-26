@@ -2,7 +2,7 @@
 #
 # 迁移说明：
 #   原始用 spark.sql() 执行 CREATE TABLE + TEMP VIEW + MERGE INTO
-#   ZettaPark 用 session.sql() 执行相同语句，语法完全兼容
+#   Lakehouse 不支持 CREATE TEMP VIEW SQL 语法，改为 CREATE OR REPLACE VIEW（普通视图）
 #   MERGE INTO 是标准 SQL，ZettaPark 直接支持
 
 import sys
@@ -31,7 +31,7 @@ def produce_calculated_race_results(session: Session):
     """)
 
     session.sql(f"""
-        CREATE OR REPLACE TEMP VIEW race_result_updated AS
+        CREATE OR REPLACE VIEW {presentation_schema}.race_result_updated AS
         SELECT
             races.race_year,
             constructors.name        AS team_name,
@@ -51,7 +51,7 @@ def produce_calculated_race_results(session: Session):
 
     session.sql(f"""
         MERGE INTO {presentation_schema}.calculated_race_results tgt
-        USING race_result_updated upd
+        USING {presentation_schema}.race_result_updated upd
         ON (tgt.driver_id = upd.driver_id AND tgt.race_id = upd.race_id)
         WHEN MATCHED THEN
             UPDATE SET

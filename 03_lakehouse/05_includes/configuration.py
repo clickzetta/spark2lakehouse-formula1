@@ -7,8 +7,9 @@
 
 import os
 
-VOLUME_PATH   = "vol://mcp_demo.formula1_vol"   # ZettaPark session.read 使用
-SCHEMA_NAME   = "mcp_demo"                       # Volume 所在 schema（用于 USE SCHEMA）
+SCHEMA_NAME   = os.environ.get("CLICKZETTA_SCHEMA", "mcp_demo")
+VOLUME_NAME   = os.environ.get("CLICKZETTA_VOLUME", "formula1_vol")
+VOLUME_PATH   = f"vol://{SCHEMA_NAME}.{VOLUME_NAME}"   # ZettaPark session.read 使用
 
 raw_folder_path          = VOLUME_PATH
 processed_schema         = "f1_processed"
