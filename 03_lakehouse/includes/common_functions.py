@@ -58,6 +58,7 @@ def merge_delta_data(input_df, db_name, table_name, merge_condition, partition_c
             WHEN NOT MATCHED THEN INSERT *
         """)
     else:
-        # Use CREATE TABLE AS SELECT to avoid saveAsTable schema-resolution against non-existent table
-        input_df.create_or_replace_temp_view("_merge_src")
-        session.sql(f"CREATE TABLE {full_name} AS SELECT * FROM _merge_src")
+        # saveAsTable resolves target schema even for non-existent tables.
+        # Extract the underlying SQL from the DataFrame plan and use it directly in CTAS.
+        src_sql = input_df._plan.queries[-1].sql.strip()
+        session.sql(f"CREATE TABLE {full_name} AS {src_sql}").collect()

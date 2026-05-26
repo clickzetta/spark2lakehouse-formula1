@@ -11,7 +11,7 @@ sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 from clickzetta.zettapark.session import Session
 from includes.configuration import processed_schema, presentation_schema
 
-v_file_date = "2021-03-21"
+v_file_date = "2021-03-28"
 
 
 def produce_calculated_race_results(session: Session):
@@ -28,7 +28,7 @@ def produce_calculated_race_results(session: Session):
             created_date     TIMESTAMP,
             updated_date     TIMESTAMP
         )
-    """)
+    """).collect()
 
     session.sql(f"""
         CREATE OR REPLACE VIEW {presentation_schema}.race_result_updated AS
@@ -42,12 +42,12 @@ def produce_calculated_race_results(session: Session):
             results.points,
             11 - results.position    AS calculated_points
         FROM {processed_schema}.results
-        JOIN {processed_schema}.drivers      ON results.driver_id      = drivers.driver_id
-        JOIN {processed_schema}.constructors ON results.constructor_id = constructors.constructor_id
+        JOIN {processed_schema}.drivers      ON results.driver_id      = drivers.driver_ref
+        JOIN {processed_schema}.constructors ON results.constructor_id = constructors.constructor_ref
         JOIN {processed_schema}.races        ON results.race_id        = races.race_id
         WHERE results.position <= 10
           AND results.file_date = '{v_file_date}'
-    """)
+    """).collect()
 
     session.sql(f"""
         MERGE INTO {presentation_schema}.calculated_race_results tgt
@@ -62,9 +62,9 @@ def produce_calculated_race_results(session: Session):
         WHEN NOT MATCHED THEN
             INSERT (race_year, team_name, driver_id, driver_name, race_id,
                     position, points, calculated_points, created_date)
-            VALUES (race_year, team_name, driver_id, driver_name, race_id,
-                    position, points, calculated_points, current_timestamp())
-    """)
+            VALUES (upd.race_year, upd.team_name, upd.driver_id, upd.driver_name, upd.race_id,
+                    upd.position, upd.points, upd.calculated_points, current_timestamp())
+    """).collect()
 
 
 if __name__ == "__main__":

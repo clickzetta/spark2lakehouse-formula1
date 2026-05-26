@@ -25,7 +25,7 @@ def ingest_races(session: Session):
         StructField("raceId",    IntegerType(), True),
         StructField("year",      IntegerType(), True),
         StructField("round",     IntegerType(), True),
-        StructField("circuitId", IntegerType(), True),
+        StructField("circuitId", StringType(),  True),
         StructField("name",      StringType(),  True),
         StructField("date",      StringType(),  True),
         StructField("time",      StringType(),  True),
@@ -43,7 +43,7 @@ def ingest_races(session: Session):
         F.col("raceId").alias("race_id"),
         F.col("year").alias("race_year"),
         F.col("round"),
-        F.col("circuitId").alias("circuit_id"),
+        F.col("circuitId").alias("circuit_ref"),
         F.col("name"),
         F.to_timestamp(
             F.concat(

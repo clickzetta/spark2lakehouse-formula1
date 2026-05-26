@@ -22,11 +22,11 @@ def produce_calculated_race_results_full(session: Session):
             results.points,
             11 - results.position    AS calculated_position
         FROM {processed_schema}.results
-        JOIN {processed_schema}.drivers      ON results.driver_id      = drivers.driver_id
-        JOIN {processed_schema}.constructors ON results.constructor_id = constructors.constructor_id
+        JOIN {processed_schema}.drivers      ON results.driver_id      = drivers.driver_ref
+        JOIN {processed_schema}.constructors ON results.constructor_id = constructors.constructor_ref
         JOIN {processed_schema}.races        ON results.race_id        = races.race_id
         WHERE results.position <= 10
-    """)
+    """).collect()
 
 
 if __name__ == "__main__":

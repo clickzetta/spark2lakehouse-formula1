@@ -13,7 +13,7 @@ from clickzetta.zettapark import functions as F
 from includes.configuration import processed_schema, presentation_schema
 from includes.common_functions import merge_delta_data
 
-v_file_date = "2021-03-21"
+v_file_date = "2021-03-28"
 
 
 def produce_race_results(session: Session):
@@ -24,7 +24,7 @@ def produce_race_results(session: Session):
     results_df   = session.table(f"{processed_schema}.results").filter(F.col("file_date") == v_file_date)
 
     race_circuits_df = races_df.join(
-        circuits_df, races_df["circuit_id"] == circuits_df["circuit_id"], "inner"
+        circuits_df, races_df["circuit_ref"] == circuits_df["circuit_ref"], "inner"
     ).select(
         races_df["race_id"],
         races_df["race_year"],
@@ -36,24 +36,24 @@ def produce_race_results(session: Session):
     final_df = (
         results_df
         .join(race_circuits_df, results_df["race_id"] == race_circuits_df["race_id"])
-        .join(drivers_df,       results_df["driver_id"] == drivers_df["driver_id"])
-        .join(constructors_df,  results_df["constructor_id"] == constructors_df["constructor_id"])
+        .join(drivers_df,       results_df["driver_id"] == drivers_df["driver_ref"])
+        .join(constructors_df,  results_df["constructor_id"] == constructors_df["constructor_ref"])
         .select(
-            race_circuits_df["race_id"],
-            race_circuits_df["race_year"],
-            race_circuits_df["race_name"],
-            race_circuits_df["race_date"],
-            race_circuits_df["circuit_location"],
+            race_circuits_df["race_id"].alias("race_id"),
+            race_circuits_df["race_year"].alias("race_year"),
+            race_circuits_df["race_name"].alias("race_name"),
+            race_circuits_df["race_date"].alias("race_date"),
+            race_circuits_df["circuit_location"].alias("circuit_location"),
             drivers_df["name"].alias("driver_name"),
             drivers_df["number"].alias("driver_number"),
             drivers_df["nationality"].alias("driver_nationality"),
             constructors_df["name"].alias("team"),
-            results_df["grid"],
-            results_df["fastest_lap"],
+            results_df["grid"].alias("grid"),
+            results_df["fastest_lap"].alias("fastest_lap"),
             results_df["time"].alias("race_time"),
-            results_df["points"],
-            results_df["position"],
-            results_df["file_date"],
+            results_df["points"].alias("points"),
+            results_df["position"].alias("position"),
+            results_df["file_date"].alias("file_date"),
             F.current_timestamp().alias("created_date"),
         )
     )

@@ -15,7 +15,7 @@ from clickzetta.zettapark.window import Window
 from includes.configuration import presentation_schema
 from includes.common_functions import df_column_to_list, merge_delta_data
 
-v_file_date = "2021-03-21"
+v_file_date = "2021-03-28"
 
 
 def produce_driver_standings(session: Session):
