@@ -7,21 +7,26 @@
 ## 项目结构
 
 ```
-├── ingestion/          # 原始 Spark 代码：数据摄取（PySpark）
-├── trans/              # 原始 Spark 代码：数据转换（PySpark + Spark SQL）
-├── analysis/           # 原始 Spark 代码：数据分析（Spark SQL）
-├── create_raw_tables/  # 原始 Spark 代码：建表 DDL
-├── includes/           # 原始 Spark 代码：公共函数和配置
-├── lakehouse/          # ✅ Lakehouse 实现（ClickZetta SQL）
-│   ├── ddl/            #    建表语句
-│   ├── ingestion/      #    数据摄取
-│   ├── transformation/ #    数据转换
-│   └── analysis/       #    数据分析
-└── migration/          # ✅ 迁移说明文档
-    ├── 01_overview.md
-    ├── 02_syntax_mapping.md
-    ├── 03_data_types.md
-    └── 04_step_by_step.md
+├── spark/                  # 📦 原始 Spark/PySpark 代码（只读参考）
+│   ├── ingestion/          #   数据摄取：spark.read.csv/json() → Delta
+│   ├── trans/              #   数据转换：DataFrame join + 聚合
+│   ├── analysis/           #   数据分析：Spark SQL 查询
+│   ├── create_raw_tables/  #   建表 DDL（Databricks 格式）
+│   ├── includes/           #   公共函数和配置
+│   └── utils/              #   工具脚本
+│
+├── lakehouse/              # ✅ 迁移后的 ClickZetta Lakehouse SQL
+│   ├── ddl/                #   建表语句（External Table + Schema）
+│   ├── transformation/     #   数据转换（INSERT OVERWRITE + Window 函数）
+│   └── analysis/           #   数据分析（与 Spark SQL 基本兼容）
+│
+├── migration/              # 📖 迁移说明文档
+│   ├── 01_overview.md          迁移策略与关键差异
+│   └── 02_syntax_mapping.md    Spark SQL → Lakehouse SQL 语法对照
+│
+├── datasets/raw/           # 原始数据（由 setup.py 从 Ergast API 下载）
+├── setup.py                # 🚀 一键初始化（下载数据、创建 Volume、执行 SQL）
+└── .env.sample             # 连接配置模板
 ```
 
 ## 数据架构
