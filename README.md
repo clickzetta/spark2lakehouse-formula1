@@ -4,6 +4,10 @@
 
 本项目 fork 自 [FerhattSimsekk/formula1-data-engineering](https://github.com/FerhattSimsekk/formula1-data-engineering)，在保留原始 Spark/PySpark 代码的基础上，新增了对应的 **ZettaPark（ClickZetta Python DataFrame SDK）实现**，将原项目完整的迁移到ClickZetta Lakehouse，并完成了端到端验证。
 
+## 迁移架构
+
+![迁移架构](docs/migration-architecture.svg)
+
 ---
 
 ## 项目结构

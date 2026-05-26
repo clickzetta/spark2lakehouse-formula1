@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" font-family="'Segoe UI', Arial, sans-serif">
+  <!-- Background -->
+  <rect width="900" height="540" fill="#f8f9fa" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="38" text-anchor="middle" font-size="18" font-weight="bold" fill="#1a1a2e">PySpark → ClickZetta Lakehouse 迁移架构</text>
+
+  <!-- ══════════════ LEFT SIDE: PySpark / Databricks ══════════════ -->
+  <rect x="30" y="60" width="370" height="440" rx="10" fill="#fff" stroke="#e0e0e0" stroke-width="1.5"/>
+  <rect x="30" y="60" width="370" height="36" rx="10" fill="#E8EAF6"/>
+  <rect x="30" y="84" width="370" height="12" fill="#E8EAF6"/>
+  <text x="215" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#3949AB">Apache Spark / Databricks</text>
+
+  <!-- Data Source box -->
+  <rect x="55" y="112" width="320" height="52" rx="7" fill="#EDE7F6" stroke="#9575CD" stroke-width="1"/>
+  <text x="215" y="132" text-anchor="middle" font-size="11" font-weight="bold" fill="#512DA8">数据源</text>
+  <text x="215" y="150" text-anchor="middle" font-size="10" fill="#512DA8">Ergast API  /  DBFS 挂载路径 /mnt/...</text>
+
+  <!-- Arrow down -->
+  <line x1="215" y1="164" x2="215" y2="182" stroke="#9575CD" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- Ingestion box -->
+  <rect x="55" y="182" width="320" height="68" rx="7" fill="#E3F2FD" stroke="#42A5F5" stroke-width="1"/>
+  <text x="215" y="200" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565C0">Ingestion（Bronze）</text>
+  <text x="215" y="216" text-anchor="middle" font-size="10" fill="#1565C0">spark.read.csv / .json</text>
+  <text x="215" y="232" text-anchor="middle" font-size="10" fill="#1565C0">df.write.format("delta").partitionBy(...)</text>
+
+  <!-- Arrow down -->
+  <line x1="215" y1="250" x2="215" y2="268" stroke="#42A5F5" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- Transformation box -->
+  <rect x="55" y="268" width="320" height="68" rx="7" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1"/>
+  <text x="215" y="286" text-anchor="middle" font-size="11" font-weight="bold" fill="#2E7D32">Transformation（Silver）</text>
+  <text x="215" y="302" text-anchor="middle" font-size="10" fill="#2E7D32">spark.sql("MERGE INTO ...")  /  Window</text>
+  <text x="215" y="318" text-anchor="middle" font-size="10" fill="#2E7D32">df.join / groupBy / rank().over(spec)</text>
+
+  <!-- Arrow down -->
+  <line x1="215" y1="336" x2="215" y2="354" stroke="#66BB6A" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Presentation box -->
+  <rect x="55" y="354" width="320" height="68" rx="7" fill="#FFF8E1" stroke="#FFA726" stroke-width="1"/>
+  <text x="215" y="372" text-anchor="middle" font-size="11" font-weight="bold" fill="#E65100">Presentation（Gold）</text>
+  <text x="215" y="388" text-anchor="middle" font-size="10" fill="#E65100">race_results / driver_standings</text>
+  <text x="215" y="404" text-anchor="middle" font-size="10" fill="#E65100">constructor_standings / calculated_race_results</text>
+
+  <!-- Storage label -->
+  <rect x="55" y="440" width="320" height="40" rx="7" fill="#FAFAFA" stroke="#BDBDBD" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="215" y="456" text-anchor="middle" font-size="10" fill="#616161">存储：Delta Lake on DBFS</text>
+  <text x="215" y="472" text-anchor="middle" font-size="10" fill="#616161">计算：Databricks Cluster</text>
+
+  <!-- ══════════════ MIDDLE: Migration Arrow ══════════════ -->
+  <!-- Big arrow -->
+  <defs>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#9575CD"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#42A5F5"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#66BB6A"/>
+    </marker>
+    <marker id="arrowMain" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L0,8 L10,4 z" fill="#F44336"/>
+    </marker>
+  </defs>
+
+  <!-- Migration arrow body -->
+  <rect x="415" y="240" width="70" height="60" rx="6" fill="#FFEBEE"/>
+  <polygon points="415,240 485,240 485,300 415,300" fill="#FFEBEE" rx="6"/>
+  <!-- Arrow shape -->
+  <polygon points="418,258 468,258 468,248 485,270 468,292 468,282 418,282" fill="#EF5350"/>
+  <text x="450" y="316" text-anchor="middle" font-size="9" font-weight="bold" fill="#C62828">迁移</text>
+
+  <!-- Mapping labels -->
+  <text x="450" y="340" text-anchor="middle" font-size="8.5" fill="#555">API 兼容</text>
+  <text x="450" y="354" text-anchor="middle" font-size="8.5" fill="#555">语法对齐</text>
+  <text x="450" y="368" text-anchor="middle" font-size="8.5" fill="#555">路径替换</text>
+
+  <!-- ══════════════ RIGHT SIDE: ClickZetta Lakehouse ══════════════ -->
+  <rect x="500" y="60" width="370" height="440" rx="10" fill="#fff" stroke="#e0e0e0" stroke-width="1.5"/>
+  <rect x="500" y="60" width="370" height="36" rx="10" fill="#E8F5E9"/>
+  <rect x="500" y="84" width="370" height="12" fill="#E8F5E9"/>
+  <text x="685" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="#2E7D32">ClickZetta Lakehouse + ZettaPark</text>
+
+  <!-- Data Source box -->
+  <rect x="525" y="112" width="320" height="52" rx="7" fill="#EDE7F6" stroke="#9575CD" stroke-width="1"/>
+  <text x="685" y="132" text-anchor="middle" font-size="11" font-weight="bold" fill="#512DA8">数据源</text>
+  <text x="685" y="150" text-anchor="middle" font-size="10" fill="#512DA8">Jolpica API  /  Named Volume  vol://...</text>
+
+  <!-- Arrow down -->
+  <line x1="685" y1="164" x2="685" y2="182" stroke="#9575CD" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- Ingestion box -->
+  <rect x="525" y="182" width="320" height="68" rx="7" fill="#E3F2FD" stroke="#42A5F5" stroke-width="1"/>
+  <text x="685" y="200" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565C0">Ingestion（f1_processed）</text>
+  <text x="685" y="216" text-anchor="middle" font-size="10" fill="#1565C0">session.read.csv / .json  ← vol://</text>
+  <text x="685" y="232" text-anchor="middle" font-size="10" fill="#1565C0">MERGE INTO ... PARTITIONED BY (col TYPE)</text>
+
+  <!-- Arrow down -->
+  <line x1="685" y1="250" x2="685" y2="268" stroke="#42A5F5" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- Transformation box -->
+  <rect x="525" y="268" width="320" height="68" rx="7" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1"/>
+  <text x="685" y="286" text-anchor="middle" font-size="11" font-weight="bold" fill="#2E7D32">Transformation（f1_presentation）</text>
+  <text x="685" y="302" text-anchor="middle" font-size="10" fill="#2E7D32">session.sql(...).collect()  /  Window</text>
+  <text x="685" y="318" text-anchor="middle" font-size="10" fill="#2E7D32">df.join / groupBy / F.rank().over(spec)</text>
+
+  <!-- Arrow down -->
+  <line x1="685" y1="336" x2="685" y2="354" stroke="#66BB6A" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Presentation box -->
+  <rect x="525" y="354" width="320" height="68" rx="7" fill="#FFF8E1" stroke="#FFA726" stroke-width="1"/>
+  <text x="685" y="372" text-anchor="middle" font-size="11" font-weight="bold" fill="#E65100">Presentation（f1_presentation）</text>
+  <text x="685" y="388" text-anchor="middle" font-size="10" fill="#E65100">race_results / driver_standings</text>
+  <text x="685" y="404" text-anchor="middle" font-size="10" fill="#E65100">constructor_standings / calculated_race_results</text>
+
+  <!-- Storage label -->
+  <rect x="525" y="440" width="320" height="40" rx="7" fill="#FAFAFA" stroke="#BDBDBD" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="685" y="456" text-anchor="middle" font-size="10" fill="#616161">存储：Lakehouse Iceberg Tables on Object Storage</text>
+  <text x="685" y="472" text-anchor="middle" font-size="10" fill="#616161">计算：ClickZetta Virtual Cluster</text>
+
+  <!-- ══════════════ Bottom: Key Mapping ══════════════ -->
+  <!-- Mapping lines between left and right -->
+  <!-- session.read ↔ spark.read -->
+  <line x1="375" y1="216" x2="525" y2="216" stroke="#42A5F5" stroke-width="1" stroke-dasharray="5,3" opacity="0.6"/>
+  <!-- MERGE INTO ↔ MERGE INTO -->
+  <line x1="375" y1="302" x2="525" y2="302" stroke="#66BB6A" stroke-width="1" stroke-dasharray="5,3" opacity="0.6"/>
+  <!-- Window ↔ Window -->
+  <line x1="375" y1="388" x2="525" y2="388" stroke="#FFA726" stroke-width="1" stroke-dasharray="5,3" opacity="0.6"/>
+
+  <!-- ══════════════ Legend ══════════════ -->
+  <rect x="30" y="508" width="840" height="24" rx="6" fill="#F5F5F5" stroke="#E0E0E0" stroke-width="1"/>
+  <circle cx="55" cy="520" r="5" fill="#42A5F5"/>
+  <text x="65" y="524" font-size="9.5" fill="#555">session.read ≈ spark.read</text>
+  <circle cx="210" cy="520" r="5" fill="#66BB6A"/>
+  <text x="220" y="524" font-size="9.5" fill="#555">MERGE INTO 语法完全一致</text>
+  <circle cx="390" cy="520" r="5" fill="#9575CD"/>
+  <text x="400" y="524" font-size="9.5" fill="#555">vol:// 替换 /mnt/ 路径</text>
+  <circle cx="545" cy="520" r="5" fill="#FFA726"/>
+  <text x="555" y="524" font-size="9.5" fill="#555">PARTITIONED BY 替换 partitionBy()</text>
+  <circle cx="750" cy="520" r="5" fill="#EF5350"/>
+  <text x="760" y="524" font-size="9.5" fill="#555">.collect() 触发执行</text>
+</svg>
