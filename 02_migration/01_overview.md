@@ -22,7 +22,7 @@ ClickZetta Lakehouse 是一个云原生的存算分离数仓，兼容标准 SQL�
 | 层次 | 原始实现 | 迁移工作量 | 说明 |
 |------|---------|-----------|------|
 | 原始层 DDL | `CREATE TABLE ... USING csv OPTIONS(path)` | 低 | 语法差异小，主要是 OPTIONS 写法 |
-| 数据摄取 | PySpark DataFrame API | 中 | 用 `COPY INTO` 或 `INSERT INTO SELECT` 替代 |
+| 数据摄取 | PySpark DataFrame API | 中 | 改为 `CREATE EXTERNAL TABLE` 直接映射源文件，摄取逻辑转为 SQL 查询 |
 | 数据转换 | PySpark + Spark SQL | 低 | Window 函数、JOIN 语法完全兼容 |
 | 数据分析 | 纯 Spark SQL | 极低 | 几乎零改动 |
 
