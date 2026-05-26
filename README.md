@@ -2,7 +2,67 @@
 
 > PySpark → ClickZetta Lakehouse 完整迁移示例，以 F1 赛车数据工程项目为载体。
 
-本项目 fork 自 [FerhattSimsekk/formula1-data-engineering](https://github.com/FerhattSimsekk/formula1-data-engineering)，在保留原始 Spark/PySpark 代码的基础上，新增了对应的 **ZettaPark（ClickZetta Python DataFrame SDK）实现**，将原项目完整的迁移到ClickZetta Lakehouse，并完成了端到端验证。
+本项目 fork 自 [FerhattSimsekk/formula1-data-engineering](https://github.com/FerhattSimsekk/formula1-data-engineering)，在保留原始 Spark/PySpark 代码的基础上，新增了对应的 **ZettaPark（ClickZetta Python DataFrame SDK）实现**，将原项目完整迁移到 ClickZetta Lakehouse，并完成了端到端验证（71/71 验证项全部通过）。
+
+---
+
+## 迁移总结
+
+### 整体结论
+
+**迁移工作量低，API 兼容性高。** 原始 PySpark 代码约 90% 可以直接复用，改动集中在 4 个已知差异点。迁移后的代码在 `03_lakehouse/` 目录，可与 `01_spark/` 逐文件对照。
+
+### API 兼容性
+
+| 类别 | 兼容情况 | 说明 |
+|------|---------|------|
+| DataFrame 操作（select / filter / join / groupBy / sort） | ✅ 完全兼容 | 代码无需修改 |
+| Window 函数（rank / dense_rank / row_number） | ✅ 完全兼容 | 仅替换导入路径 |
+| 聚合函数（sum / count / avg / max / min） | ✅ 完全兼容 | 代码无需修改 |
+| MERGE INTO 语法 | ✅ 完全兼容 | 标准 SQL，行为一致 |
+| `withColumn` | ✅ 0.1.5 已修复 | 旧版本需改用 `select().alias()` |
+| `session.sql()` 惰性执行 | ⚠️ 设计差异 | DDL/DML 必须加 `.collect()` |
+| 多表 JOIN 列名前缀 | ✅ 0.1.5 已修复 | 推荐仍用 `df["col"].alias("col")` |
+| `saveAsTable` 对新表 | ✅ 0.1.5 已修复 | 需 MERGE 语义时仍用封装函数 |
+| 分区写入 `partitionBy()` | ⚠️ 不支持 | 改用 `PARTITIONED BY` 手写 DDL |
+| `CREATE TEMP VIEW` | ⚠️ 不支持 | 改用 `df.create_or_replace_temp_view()` |
+| 文件路径 | ⚠️ 格式不同 | `/mnt/...` → `vol://schema.vol/...` |
+
+### 必须修改的 4 处
+
+```python
+# 1. 导入路径替换（机械替换，无逻辑改动）
+from pyspark.sql import functions as F          # 改为
+from clickzetta.zettapark import functions as F
+
+from pyspark.sql.window import Window           # 改为
+from clickzetta.zettapark.window import Window
+
+# 2. session 显式创建（Databricks 中 spark 是全局注入的）
+session = Session.builder.configs({...}).create()
+
+# 3. DDL/DML 必须加 .collect()
+session.sql("MERGE INTO ...").collect()         # ⚠️ 不加则不执行
+
+# 4. 文件路径格式
+session.read.csv("vol://f1_raw.formula1_raw_vol/raw/circuits.csv")  # 替换 /mnt/...
+```
+
+### 数据源兼容性
+
+原始项目使用 Ergast API（已停服），本项目改用 Jolpica API，有以下差异需处理：
+
+| 差异点 | 原始数据 | Jolpica API | 处理方式 |
+|--------|---------|-------------|---------|
+| 主键类型 | 整数 ID | 字符串 ref（如 `"hamilton"`） | JOIN 条件改用 ref 字段 |
+| 文件格式 | CSV / JSON 数组 | NDJSON（每行一条） | 下载时逐行写入 |
+| drivers 覆盖范围 | 与 results 匹配 | 全局端点只返回 100 条（字母序） | 改用按赛季端点下载后合并去重 |
+| lap_times milliseconds | 有 | 无 | 填充 0，保留字段 |
+| results 重复记录 | 无 | 偶有 | ingestion 层加 `dropDuplicates(["race_id", "driver_id"])` |
+
+详细说明见 [`02_migration/`](02_migration/) 目录。
+
+---
 
 ## 迁移架构
 
