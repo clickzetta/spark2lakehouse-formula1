@@ -54,7 +54,8 @@ def ingest_qualifying(session: Session):
     )
 
     merge_condition = "tgt.qualify_id = src.qualify_id AND tgt.race_id = src.race_id"
-    merge_delta_data(final_df, processed_schema, "qualifying",
+    deduped_df = final_df.dropDuplicates(["qualify_id", "race_id"])
+    merge_delta_data(deduped_df, processed_schema, "qualifying",
                      merge_condition, "race_id")
     return final_df
 

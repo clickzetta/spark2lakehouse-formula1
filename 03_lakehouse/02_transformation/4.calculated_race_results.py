@@ -47,6 +47,7 @@ def produce_calculated_race_results(session: Session):
         JOIN {processed_schema}.races        ON results.race_id        = races.race_id
         WHERE results.position <= 10
           AND results.file_date = '{v_file_date}'
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY drivers.driver_id, races.race_id ORDER BY results.result_id) = 1
     """).collect()
 
     session.sql(f"""

@@ -1,8 +1,8 @@
 # ZettaPark — 对应原始：01_ingestion/7.ingest_lap_times_file.py
 #
 # 迁移说明：
-#   原始从 DBFS 目录读取多个 CSV；Jolpica API 未提供 lap_times 数据，文件暂未下载到 Volume
-#   如需完整数据，可通过 Jolpica /ergast/f1/{season}/{round}/laps.json 接口下载并 PUT 到 Volume
+#   原始从 DBFS 目录读取多个 CSV；Jolpica API 通过 download_lap_times_qualifying.py 下载
+#   数据格式：NDJSON，字段 raceId/driverId/lap/position/time/milliseconds（已展平）
 
 import sys
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
@@ -17,10 +17,21 @@ v_file_date   = "2021-03-21"
 
 
 def ingest_lap_times(session: Session):
+    from clickzetta.zettapark.types import (
+        StructType, StructField, IntegerType, StringType, LongType
+    )
+    lap_times_schema = StructType([
+        StructField("raceId",       IntegerType(), True),
+        StructField("driverId",     StringType(),  True),
+        StructField("lap",          IntegerType(), True),
+        StructField("position",     IntegerType(), True),
+        StructField("time",         StringType(),  True),
+        StructField("milliseconds", LongType(),    True),
+    ])
     lap_times_df = (
         session.read
-        .option("header", True)
-        .csv(f"{raw_folder_path}/lap_times.csv")
+        .schema(lap_times_schema)
+        .json(f"{raw_folder_path}/lap_times.json")
     )
 
     final_df = lap_times_df.select(
@@ -38,7 +49,8 @@ def ingest_lap_times(session: Session):
     merge_condition = (
         "tgt.race_id = src.race_id AND tgt.driver_id = src.driver_id AND tgt.lap = src.lap"
     )
-    merge_delta_data(final_df, processed_schema, "lap_times",
+    deduped_df = final_df.dropDuplicates(["race_id", "driver_id", "lap"])
+    merge_delta_data(deduped_df, processed_schema, "lap_times",
                      merge_condition, "race_id")
     return final_df
 

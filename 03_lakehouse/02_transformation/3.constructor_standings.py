@@ -47,7 +47,8 @@ def produce_constructor_standings(session: Session):
     )
 
     merge_condition = "tgt.team = src.team AND tgt.race_year = src.race_year"
-    merge_delta_data(final_df, presentation_schema, "constructor_standings",
+    deduped_df = final_df.dropDuplicates(["team", "race_year"])
+    merge_delta_data(deduped_df, presentation_schema, "constructor_standings",
                      merge_condition, "race_year")
     return final_df
 

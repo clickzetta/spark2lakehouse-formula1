@@ -136,7 +136,7 @@ def download_results(out_dir: Path):
     print("  results.json ...", end=" ", flush=True)
     all_results = []
     rid = 1
-    for season in range(2022, 2024):
+    for season in range(2018, 2024):
         data = fetch_json(f"{ERGAST_BASE}/{season}/results.json?limit=500")
         races = data["MRData"]["RaceTable"]["Races"]
         for race in races:
@@ -167,7 +167,7 @@ def download_results(out_dir: Path):
 def download_pit_stops(out_dir: Path):
     print("  pit_stops.json ...", end=" ", flush=True)
     all_stops = []
-    for season in range(2022, 2024):
+    for season in range(2018, 2024):
         # 先获取该赛季的 rounds 数
         season_data = fetch_json(f"{ERGAST_BASE}/{season}/races.json?limit=30")
         races = season_data["MRData"]["RaceTable"]["Races"]

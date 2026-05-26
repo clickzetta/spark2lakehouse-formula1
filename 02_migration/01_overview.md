@@ -1,35 +1,89 @@
 # 迁移概述
 
-## 为什么迁移？
+## 迁移目标
 
-ClickZetta Lakehouse 是一个云原生的存算分离数仓，兼容标准 SQL，无需维护 Spark 集群，按需计费。对于以 Spark SQL 为主的数据管道，迁移成本低，收益明显：
+将基于 Azure Databricks + PySpark 的 F1 数据工程项目迁移到 ClickZetta Lakehouse，保留原有三层架构（Raw → Processed → Presentation），使用 ZettaPark Python DataFrame API 替代 PySpark。
 
-- **无需 PySpark 代码**：绝大多数转换逻辑可以用纯 SQL 表达
-- **更低运维成本**：无需管理 Spark 集群、Driver/Executor 配置
-- **更好的并发**：分析型计算集群支持多实例横向弹缩
-- **存储格式兼容**：支持读取 Delta Lake、Parquet、JSON、CSV 等格式
+迁移后的代码在 `03_lakehouse/` 目录，可对照 `01_spark/` 目录逐文件比较。
 
-## 迁移策略
+---
 
-本项目采用**逐层迁移**策略，与原始 Medallion 架构保持一致：
+## 技术路径选择
 
-```
-原始层（f1_raw）→ 处理层（f1_processed）→ 展示层（f1_presentation）
-```
+迁移有两条路径，本项目选择 **ZettaPark Python API**：
 
-每一层的迁移工作量：
+| 路径 | 适用场景 | 本项目选择 |
+|------|---------|-----------|
+| **纯 SQL 迁移**：将 PySpark 逻辑改写为 Lakehouse SQL | 转换层以 SQL 为主、逻辑简单 | 部分使用（MERGE INTO） |
+| **ZettaPark Python API**：用类 PySpark 的 Python SDK | 已有大量 DataFrame 代码，想最小化改动 | ✅ 主要路径 |
 
-| 层次 | 原始实现 | 迁移工作量 | 说明 |
-|------|---------|-----------|------|
-| 原始层 DDL | `CREATE TABLE ... USING csv OPTIONS(path)` | 低 | 语法差异小，主要是 OPTIONS 写法 |
-| 数据摄取 | PySpark DataFrame API | 中 | 改为 `CREATE EXTERNAL TABLE` 直接映射源文件，摄取逻辑转为 SQL 查询 |
-| 数据转换 | PySpark + Spark SQL | 低 | Window 函数、JOIN 语法完全兼容 |
-| 数据分析 | 纯 Spark SQL | 极低 | 几乎零改动 |
+ZettaPark 的 API 与 PySpark 高度相似，大多数 `df.select()`、`df.join()`、`df.filter()`、`F.rank().over(window)` 可以直接复用，改动集中在几个已知差异点（详见 [03_zettapark_pitfalls.md](03_zettapark_pitfalls.md)）。
 
-## 关键差异
+---
 
-1. **数据库 → Schema**：Spark 的 `DATABASE` 对应 Lakehouse 的 `SCHEMA`
-2. **Delta Lake 路径读写 → 表名读写**：`spark.read.format('delta').load(path)` → `SELECT * FROM table`
-3. **PySpark DataFrame API → SQL**：`withColumnRenamed`、`filter`、`join` 等操作用 SQL 表达
-4. **挂载路径 → External Volume**：`/mnt/formula1dltr/` → External Volume 路径
-5. **`current_timestamp()` 函数**：两者完全兼容
+## 架构映射
+
+| 原始（Databricks） | 迁移后（ClickZetta Lakehouse） |
+|-------------------|-------------------------------|
+| Azure Data Lake Storage（ADLS）挂载路径 `/mnt/formula1dltr/` | External Volume `vol://f1_raw.formula1_raw_vol/` |
+| Databricks `spark` 全局对象 | ZettaPark `session`（显式创建） |
+| `DATABASE` | `SCHEMA` |
+| Delta Lake 表（托管存储） | Lakehouse 内部表（等价） |
+| `spark.read.csv("/mnt/...")` | `session.read.csv("vol://schema.vol/...")` |
+| `df.write.saveAsTable("db.t")` | `df.write.saveAsTable("schema.t", mode=...)` |
+| `spark.sql("...")` | `session.sql("...").collect()`（必须加 `.collect()`） |
+
+---
+
+## 各层迁移工作量
+
+### 摄取层（01_ingestion）
+
+工作量：**中**
+
+主要改动：
+1. 数据源路径：ADLS 挂载路径 → Volume 路径（`vol://`）
+2. 读取方式：`spark.read.csv(path)` → `session.read.schema(schema).csv(path)`，需显式定义 schema
+3. `withColumn` 替换：所有 `df.withColumn(name, expr)` 改为 `df.select(..., expr.alias(name))`
+4. `saveAsTable` 调用：第一次运行时表不存在会失败，需用 `merge_delta_data()` 封装
+5. 数据格式：lap_times 和 qualifying 来自 Jolpica API，格式为 NDJSON，与原始 CSV 不同
+
+### 转换层（02_transformation）
+
+工作量：**低**
+
+主要改动：
+1. `withColumn` 替换（与摄取层一致）
+2. 多表 JOIN 后的 `select()` 必须对每列显式指定来源 DataFrame 和 `.alias()`
+3. `session.sql("MERGE INTO ...").collect()` — 必须加 `.collect()`
+4. `createOrReplaceTempView` → ZettaPark 的同名方法（接口一致，无需改动）
+
+Window 函数、聚合、过滤、排序的语法与 PySpark **完全一致**。
+
+### 分析层
+
+工作量：**极低**
+
+原始 Spark SQL 查询文件几乎可以原样在 `session.sql()` 中执行，只需加 `.collect()` 或 `.show()`。
+
+---
+
+## 核心差异汇总
+
+详细的踩坑记录和解决方案见专项文档：
+
+- **[03_zettapark_pitfalls.md](03_zettapark_pitfalls.md)**：ZettaPark API 层面的 7 个已知坑（`withColumn`、惰性执行、JOIN 列名前缀等）
+- **[04_data_compatibility.md](04_data_compatibility.md)**：数据源层面的 7 个差异（Jolpica API vs 原始 Ergast CSV，字符串 ref vs 整数 ID 等）
+
+快速参考：
+
+| 差异点 | 原始（PySpark） | ZettaPark |
+|--------|----------------|-----------|
+| 添加/修改列 | `df.withColumn(name, expr)` | `df.select(..., expr.alias(name))` ⚠️ |
+| SQL 执行 | `spark.sql(query)` | `session.sql(query).collect()` ⚠️ |
+| JOIN 后取列 | `select("col")` | `select(df["col"].alias("col"))` ⚠️ |
+| 文件路径 | `/mnt/formula1dltr/raw/` | `vol://f1_raw.formula1_raw_vol/` |
+| 导入 Window | `from pyspark.sql.window import Window` | `from clickzetta.zettapark.window import Window` |
+| 导入 functions | `from pyspark.sql import functions as F` | `from clickzetta.zettapark import functions as F` |
+| 写入已有表 | `df.write.mode("overwrite").saveAsTable(t)` | `df.write.saveAsTable(t, mode="overwrite")` |
+| 写入新表 | `df.write.saveAsTable(t)` | 需用 `merge_delta_data()` 封装 ⚠️ |

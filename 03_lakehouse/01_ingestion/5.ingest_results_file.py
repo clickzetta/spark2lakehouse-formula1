@@ -71,7 +71,8 @@ def ingest_results(session: Session):
     )
 
     merge_condition = "tgt.result_id = src.result_id AND tgt.race_id = src.race_id"
-    merge_delta_data(results_with_columns_df, processed_schema, "results",
+    deduped_df = results_with_columns_df.dropDuplicates(["result_id", "race_id"])
+    merge_delta_data(deduped_df, processed_schema, "results",
                      merge_condition, "race_id")
     return results_with_columns_df
 

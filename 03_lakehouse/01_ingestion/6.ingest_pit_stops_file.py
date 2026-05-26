@@ -53,7 +53,9 @@ def ingest_pit_stops(session: Session):
         "tgt.race_id = src.race_id AND tgt.driver_id = src.driver_id "
         "AND tgt.stop = src.stop"
     )
-    merge_delta_data(final_df, processed_schema, "pit_stops",
+    # Jolpica API may return duplicate rows for the same key; deduplicate before MERGE
+    deduped_df = final_df.dropDuplicates(["race_id", "driver_id", "stop"])
+    merge_delta_data(deduped_df, processed_schema, "pit_stops",
                      merge_condition, "race_id")
     return final_df
 
