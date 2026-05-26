@@ -7,18 +7,18 @@
 ## 项目结构
 
 ```
-├── spark/                  # 📦 原始 Spark/PySpark 代码（只读参考）
-│   ├── ingestion/          #   数据摄取：spark.read.csv/json() → Delta
-│   ├── trans/              #   数据转换：DataFrame join + 聚合
-│   ├── analysis/           #   数据分析：Spark SQL 查询
-│   ├── create_raw_tables/  #   建表 DDL（Databricks 格式）
-│   ├── includes/           #   公共函数和配置
-│   └── utils/              #   工具脚本
+├── spark/                      # 📦 原始 Spark/PySpark 代码（只读参考）
+│   ├── 01_ingestion/           #   数据摄取：spark.read.csv/json() → Delta
+│   ├── 02_transformation/      #   数据转换：DataFrame join + 聚合
+│   ├── 03_analysis/            #   数据分析：Spark SQL 查询
+│   ├── 04_create_raw_tables/   #   建表 DDL（Databricks 格式）
+│   ├── 05_includes/            #   公共函数和配置
+│   └── 06_utils/               #   工具脚本
 │
-├── lakehouse/              # ✅ 迁移后的 ClickZetta Lakehouse SQL
-│   ├── ddl/                #   建表语句（External Table + Schema）
-│   ├── transformation/     #   数据转换（INSERT OVERWRITE + Window 函数）
-│   └── analysis/           #   数据分析（与 Spark SQL 基本兼容）
+├── lakehouse/                  # ✅ 迁移后的 ClickZetta Lakehouse SQL
+│   ├── 01_ddl/                 #   建表语句（External Table + Schema）
+│   ├── 02_transformation/      #   数据转换（INSERT OVERWRITE + Window 函数）
+│   └── 03_analysis/            #   数据分析（与 Spark SQL 基本兼容）
 │
 ├── migration/              # 📖 迁移说明文档
 │   ├── 01_overview.md          迁移策略与关键差异

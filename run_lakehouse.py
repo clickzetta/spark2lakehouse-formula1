@@ -51,9 +51,9 @@ def main():
         patterns = [str(base / layer / "*.sql")]
     else:
         patterns = [
-            str(base / "ddl" / "*.sql"),
-            str(base / "transformation" / "*.sql"),
-            str(base / "analysis" / "*.sql"),
+            str(base / "01_ddl" / "*.sql"),
+            str(base / "02_transformation" / "*.sql"),
+            str(base / "03_analysis" / "*.sql"),
         ]
 
     sql_files = []
