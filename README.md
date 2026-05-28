@@ -222,13 +222,31 @@ python 02_transformation/0.transform_all.py
 
 ---
 
+## 场景五：完整清理（测试完成后）
+
+清理所有 Lakehouse 对象（表、视图、schema、volume）：
+
+```bash
+cd 03_lakehouse
+
+# 清空所有表和视图（保留 schema 和 volume，可重跑）
+python reset.py
+
+# 完整清理（包括 schema 和 volume）
+python teardown.py
+
+# 预览将要删除的内容（不实际执行）
+python teardown.py --dry-run
+```
+
 ## 脚本说明
 
 | 脚本 | 作用 |
 |------|------|
 | `setup.py` | 一键初始化：建 Volume + Schema（`--skip-download` 跳过数据下载） |
 | `upload_to_volume.py` | 将 `datasets/raw/` 上传到 Lakehouse Volume |
-| `reset.py` | 清空所有 processed / presentation 表和视图 |
+| `reset.py` | 清空所有 processed / presentation 表和视图（保留 schema/volume） |
+| `teardown.py` | 完整清理：删除 schema、volume 及所有对象 |
 | `e2e.py` | 端到端全流程：上传 → 摄取 → 转换 → 汇总 |
 | `01_ingestion/0.ingest_all_files.py` | 运行所有摄取脚本 |
 | `02_transformation/0.transform_all.py` | 运行所有转换脚本 |

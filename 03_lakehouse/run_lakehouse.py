@@ -42,9 +42,7 @@ def run_sql_file(cursor, path: Path, params: dict):
 def main():
     # Usage: python run_lakehouse.py [ddl|transformation|analysis]
     layer = sys.argv[1] if len(sys.argv) > 1 else None
-    params = {
-        "your-volume-path": os.environ.get("F1_VOLUME_PATH", ""),
-    }
+    params = {}
 
     base = Path(__file__).parent
     if layer:
